@@ -10,8 +10,8 @@ import (
 
 type Config struct {
 	rest.RestConf
-
-	Redis redis.RedisConf
+	DataSource string
+	Redis      redis.RedisConf
 
 	Auth struct {
 		AccessSecret  string

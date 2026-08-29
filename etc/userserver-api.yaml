@@ -7,6 +7,9 @@ Redis:
   Type: node
   Pass: ""
 
+DataSource: "root:123456@tcp(127.0.0.1:3308)/user_server?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai"
+
+
 Auth:
   AccessSecret: "Dr2dweO8FVvdhzIHSlmiUwwMAiTu+kErLL15grQe5UeE71U/BlGdt0oM1qu5ht89"
   AccessExpire: 7200
