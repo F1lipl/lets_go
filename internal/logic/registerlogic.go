@@ -6,6 +6,7 @@ package logic
 import (
 	"context"
 	"errors"
+	"time"
 	"userServer/internal/ecode"
 	"userServer/internal/model"
 	"userServer/internal/svc"
@@ -82,6 +83,7 @@ func (l *RegisterLogic) Register(
 		PhoneNumber:    req.PhoneNumber,
 		PasswordDigest: passwordDigest,
 		AccountStatus:  1,
+		CreatedAt:      time.Now(),
 	}
 
 	_, err = l.svcCtx.UserModel.Insert(l.ctx, user)

@@ -13,8 +13,9 @@ type GetVerificationResp struct {
 }
 
 type LoginByPasswordReq struct {
-	PhoneNumber string `json:"phoneNumber"`
-	Password    string `json:"password"`
+	IdentifierType string `json:"identifierType"`
+	Identifier     string `json:"identifier"`
+	Password       string `json:"password"`
 }
 
 type LoginByPhoneReq struct {

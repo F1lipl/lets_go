@@ -30,8 +30,9 @@ type (
 		VerificationCode string `json:"verificationCode"`
 	}
 	LoginByPasswordReq {
-		PhoneNumber string `json:"phoneNumber"`
-		Password    string `json:"password"`
+		IdentifierType string `json:"identifierType"`
+		Identifier     string `json:"identifier"`
+		Password       string `json:"password"`
 	}
 	LoginResp {
 		ErrorCode        int    `json:"errorCode"`
