@@ -1,0 +1,60 @@
+syntax = "v1"
+
+info (
+	title:  "User Server API"
+	desc:   "User register and login API"
+	author: "F1lipl"
+	email:  "c2995388076@163.com"
+)
+
+type (
+	RegisterReq {
+		UserName    string `json:"userName"`
+		Password    string `json:"password"`
+		PhoneNumber string `json:"phoneNumber"`
+	}
+	RegisterResp {
+		ErrorCode int    `json:"errorCode"`
+		Message   string `json:"message"`
+		UserID    string `json:"userId,omitempty"`
+	}
+	GetVerificationReq {
+		PhoneNumber string `json:"phoneNumber"`
+	}
+	GetVerificationResp {
+		ErrorCode int    `json:"errorCode"`
+		Message   string `json:"message"`
+	}
+	LoginByPhoneReq {
+		PhoneNumber      string `json:"phoneNumber"`
+		VerificationCode string `json:"verificationCode"`
+	}
+	LoginByPasswordReq {
+		PhoneNumber string `json:"phoneNumber"`
+		Password    string `json:"password"`
+	}
+	LoginResp {
+		ErrorCode        int    `json:"errorCode"`
+		Message          string `json:"message"`
+		UserID           string `json:"userId,omitempty"`
+		AccessToken      string `json:"accessToken,omitempty"`
+		RefreshToken     string `json:"refreshToken,omitempty"`
+		AccessExpiresIn  int64  `json:"accessExpiresIn,omitempty"`
+		RefreshExpiresIn int64  `json:"refreshExpiresIn,omitempty"`
+	}
+)
+
+service userServer-api {
+	@handler RegisterHandler
+	post /register (RegisterReq) returns (RegisterResp)
+
+	@handler VerificationHandler
+	post /verification-code (GetVerificationReq) returns (GetVerificationResp)
+
+	@handler LoginByPhoneHandler
+	post /login/phone (LoginByPhoneReq) returns (LoginResp)
+
+	@handler LoginByPasswordHandler
+	post /login/password (LoginByPasswordReq) returns (LoginResp)
+}
+

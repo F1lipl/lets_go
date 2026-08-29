@@ -1,0 +1,14 @@
+Name: userServer-api
+Host: 0.0.0.0
+Port: 8888
+
+Redis:
+  Host: 127.0.0.1:6379
+  Type: node
+  Pass: ""
+
+Auth:
+  AccessSecret: "Dr2dweO8FVvdhzIHSlmiUwwMAiTu+kErLL15grQe5UeE71U/BlGdt0oM1qu5ht89"
+  AccessExpire: 7200
+  RefreshSecret: "A+ar5ZArgYdECzyt+lgKVvhVB19dJxcDsYxabv11hwqehTef2TXec9JBtQVgAFjp"
+  RefreshExpire: 604800 #七天d
