@@ -190,7 +190,7 @@ func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *type
 		}, nil
 	}
 
-	accessToken, err := generateToken(l.svcCtx.Config.Auth.AccessSecret, l.svcCtx.Config.Auth.AccessExpire, user.UserId, "access")
+	accessToken, err := generateAccessToken(l.svcCtx.Config.Auth.AccessSecret, l.svcCtx.Config.Auth.AccessExpire, user.UserId, "access")
 	if err != nil {
 		l.Errorw("generate access token failed", logx.Field("err", err), logx.Field("userId", user.UserId))
 
@@ -200,7 +200,7 @@ func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *type
 			Message:   code.Message(),
 		}, nil
 	}
-	refreshToken, err := generateToken(l.svcCtx.Config.Auth.RefreshSecret, l.svcCtx.Config.Auth.RefreshExpire, user.UserId, "refresh")
+	refreshToken, err := generateAccessToken(l.svcCtx.Config.Auth.RefreshSecret, l.svcCtx.Config.Auth.RefreshExpire, user.UserId, "refresh")
 	if err != nil {
 		l.Errorw("generate refresh token failed", logx.Field("err", err), logx.Field("userId", user.UserId))
 		code := ecode.InternalError

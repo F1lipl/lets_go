@@ -25,14 +25,22 @@ type (
 		ErrorCode int    `json:"errorCode"`
 		Message   string `json:"message"`
 	}
+	DeviceInfo {
+		DeviceID   string `json:"deviceId"`
+		DeviceName string `json:"deviceName"`
+		Platform   string `json:"platform"`
+		AppVersion string `json:"appVersion"`
+	}
 	LoginByPhoneReq {
 		PhoneNumber      string `json:"phoneNumber"`
 		VerificationCode string `json:"verificationCode"`
+		Device           DeviceInfo `json:"device"`
 	}
 	LoginByPasswordReq {
 		IdentifierType string `json:"identifierType"`
 		Identifier     string `json:"identifier"`
 		Password       string `json:"password"`
+		Device         DeviceInfo `json:"device"`
 	}
 	LoginResp {
 		ErrorCode        int    `json:"errorCode"`
@@ -58,4 +66,3 @@ service userServer-api {
 	@handler LoginByPasswordHandler
 	post /login/password (LoginByPasswordReq) returns (LoginResp)
 }
-

@@ -132,7 +132,7 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 		}, nil
 	}
 
-	accessToken, err := generateToken(
+	accessToken, err := generateAccessToken(
 		l.svcCtx.Config.Auth.AccessSecret,
 		l.svcCtx.Config.Auth.AccessExpire,
 		user.UserId,
@@ -148,7 +148,7 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 		}, nil
 	}
 
-	refreshToken, err := generateToken(
+	refreshToken, err := generateAccessToken(
 		l.svcCtx.Config.Auth.RefreshSecret,
 		l.svcCtx.Config.Auth.RefreshExpire,
 		user.UserId,

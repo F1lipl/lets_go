@@ -3,6 +3,13 @@
 
 package types
 
+type DeviceInfo struct {
+	DeviceID   string `json:"deviceId"`
+	DeviceName string `json:"deviceName"`
+	Platform   string `json:"platform"`
+	AppVersion string `json:"appVersion"`
+}
+
 type GetVerificationReq struct {
 	PhoneNumber string `json:"phoneNumber"`
 }
@@ -13,14 +20,16 @@ type GetVerificationResp struct {
 }
 
 type LoginByPasswordReq struct {
-	IdentifierType string `json:"identifierType"`
-	Identifier     string `json:"identifier"`
-	Password       string `json:"password"`
+	IdentifierType string     `json:"identifierType"`
+	Identifier     string     `json:"identifier"`
+	Password       string     `json:"password"`
+	Device         DeviceInfo `json:"device"`
 }
 
 type LoginByPhoneReq struct {
-	PhoneNumber      string `json:"phoneNumber"`
-	VerificationCode string `json:"verificationCode"`
+	PhoneNumber      string     `json:"phoneNumber"`
+	VerificationCode string     `json:"verificationCode"`
+	Device           DeviceInfo `json:"device"`
 }
 
 type LoginResp struct {
