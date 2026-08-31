@@ -52,7 +52,9 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 
 	default:
 		code := ecode.InvalidRequest
-
+		l.Infow("使用了错误的登陆方式",
+			logx.Field("identifier", req.Identifier),
+		)
 		return &types.LoginResp{
 			ErrorCode: code.Int(),
 			Message:   "identifierType 只能是 phoneNumber 或 username",
@@ -62,7 +64,9 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 	// 用户不存在
 	if errors.Is(err, model.ErrNotFound) {
 		code := ecode.LoginCredentialInvalid
-
+		l.Infow("登陆的用户不存在",
+			logx.Field("identifier", req.Identifier),
+			logx.Field("username", req.Identifier))
 		return &types.LoginResp{
 			ErrorCode: code.Int(),
 			Message:   code.Message(),
@@ -72,9 +76,10 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 	// 查询出现其他问题
 	if err != nil {
 		l.Errorf(
-			"query login user failed, identifierType=%s, err=%v",
-			req.IdentifierType,
-			err,
+			"查询数据库时出现错误",
+			logx.Field("identifier", req.Identifier),
+			logx.Field("identifierType", req.IdentifierType),
+			logx.Field("error", err.Error()),
 		)
 
 		code := ecode.DatabaseError
@@ -88,7 +93,9 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 	// 手机号登录和用户名登录都必须执行密码比对
 	if !comparePassword(user.PasswordDigest, req.Password) {
 		code := ecode.LoginCredentialInvalid
-
+		l.Infow("密码错误",
+			logx.Field("identifier", req.Identifier),
+			logx.Field("username", req.Identifier))
 		return &types.LoginResp{
 			ErrorCode: code.Int(),
 			Message:   code.Message(),

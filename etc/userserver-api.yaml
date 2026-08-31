@@ -2,10 +2,30 @@ Name: userServer-api
 Host: 0.0.0.0
 Port: 8888
 
+Log:
+  ServiceName: user-server-api
+  Mode: file
+  Encoding: json
+  Path: logs
+  Level: info
+  Stat: true
+  KeepDays: 14
+  Compress: true
+  Rotation: daily
+  FieldKeys:
+    TraceKey: trace_id
+    SpanKey: span_id
+
+Telemetry:
+  Name: user-server-api
+  Endpoint: 127.0.0.1:4317
+  Sampler: 1.0
+  Batcher: otlpgrpc
+
 Redis:
   Host: 127.0.0.1:6379
   Type: node
-  Pass: ""
+  Pass: "123456"
 
 DataSource: "root:123456@tcp(127.0.0.1:3308)/user_server?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai"
 
@@ -14,4 +34,4 @@ Auth:
   AccessSecret: "Dr2dweO8FVvdhzIHSlmiUwwMAiTu+kErLL15grQe5UeE71U/BlGdt0oM1qu5ht89"
   AccessExpire: 7200
   RefreshSecret: "A+ar5ZArgYdECzyt+lgKVvhVB19dJxcDsYxabv11hwqehTef2TXec9JBtQVgAFjp"
-  RefreshExpire: 604800 #七天d
+  RefreshExpire: 604800 # 七天
