@@ -46,7 +46,7 @@ func loginVerificationCodeKey(phoneNumber string) string {
 	return "verification:login:" + phoneNumber
 }
 
-func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *types.LoginResp, err error) {
+func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *LoginResult, err error) {
 	phoneNumber := req.PhoneNumber
 	verificationCode := req.VerificationCode
 
@@ -58,9 +58,12 @@ func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *type
 			logx.Field("reason", "user_not_found"),
 		)
 		code := ecode.UserNotFound
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 	}
 	//查询失败
@@ -70,9 +73,12 @@ func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *type
 			logx.Field("err", err),
 		)
 		code := ecode.DatabaseError
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 	}
 
@@ -86,9 +92,12 @@ func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *type
 		)
 		code := ecode.AccountDisabled
 
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 
 	case 2:
@@ -99,9 +108,12 @@ func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *type
 		)
 		code := ecode.AccountPending
 
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 
 	case 1:
@@ -115,9 +127,12 @@ func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *type
 		)
 		code := ecode.AccountDisabled
 
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 	}
 
@@ -134,9 +149,12 @@ func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *type
 			logx.Field("err", err),
 		)
 		code := ecode.CacheError
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 	}
 
@@ -147,9 +165,12 @@ func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *type
 			logx.Field("result", result),
 		)
 		code := ecode.CacheError
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 	}
 
@@ -160,9 +181,12 @@ func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *type
 			logx.Field("reason", "verification_code_missing"),
 		)
 		code := ecode.VerificationCodeExpired
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 
 	case 0:
@@ -171,9 +195,12 @@ func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *type
 			logx.Field("reason", "verification_code_mismatch"),
 		)
 		code := ecode.VerificationCodeInvalid
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 
 	case 1:
@@ -185,23 +212,14 @@ func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *type
 			logx.Field("result", matched),
 		)
 		code := ecode.CacheError
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 	}
-
-	//accessToken, err := generateAccessToken(l.svcCtx.Config.Auth.AccessSecret, l.svcCtx.Config.Auth.AccessExpire, user.UserId, "access")
-	//if err != nil {
-	//	l.Errorw("generate access token failed", logx.Field("err", err), logx.Field("userId", user.UserId))
-	//
-	//	code := ecode.InternalError
-	//	return &types.LoginResp{
-	//		ErrorCode: code.Int(),
-	//		Message:   code.Message(),
-	//	}, nil
-	//}
-
 	//判断设备信息
 	deviceid := &req.Device.DeviceID
 	if *deviceid == "" {
@@ -211,33 +229,27 @@ func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *type
 	if err != nil {
 		l.Infow("device info is validate failed", logx.Field("err", err), logx.Field("userId", user.UserId), logx.Field("deviceInfo", req.Device))
 		code := ecode.InvalidDeviceInfo
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+				DeviceID:  *deviceid,
+			},
 		}, nil
 	}
-
-	refreshToken, err := generateAccessToken(l.svcCtx.Config.Auth.RefreshSecret, l.svcCtx.Config.Auth.RefreshExpire, user.UserId, "refresh")
+	Login, err := finalizeLogin(l.svcCtx, l.ctx, user, &req.Device)
 	if err != nil {
-		l.Errorw("generate refresh token failed", logx.Field("err", err), logx.Field("userId", user.UserId))
-		code := ecode.InternalError
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		l.Infow("login error", logx.Field("err", err))
+		code := ecode.LoginCredentialInvalid
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+				DeviceID:  *deviceid,
+			},
 		}, nil
-
 	}
-	l.Infow(
-		"phone login succeeded",
-		logx.Field("userId", user.UserId),
-	)
-	return &types.LoginResp{
-		ErrorCode:        ecode.Success.Int(),
-		Message:          ecode.Success.Message(),
-		UserID:           user.UserId,
-		AccessToken:      accessToken,
-		RefreshToken:     refreshToken,
-		AccessExpiresIn:  l.svcCtx.Config.Auth.AccessExpire,
-		RefreshExpiresIn: l.svcCtx.Config.Auth.RefreshExpire,
-	}, nil
+	return Login, nil
 }

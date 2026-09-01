@@ -27,6 +27,218 @@ func generateAccessToken(secret string, expire int64, userId string, sessionId s
 	return token.SignedString([]byte(secret))
 }
 
+/**
+### 生成过程
+
+先准备 payload：
+
+```go
+payload := RefreshTokenPayload{
+    Version:   1,
+    SessionID: sessionID,
+    Counter:   0,
+}
+```
+
+转换成 JSON：
+
+```json
+{
+  "v": 1,
+  "sid": "session-uuid",
+  "ctr": 0
+}
+```
+
+进行 Base64URL 编码：
+
+```text
+encodedPayload = Base64URL(payloadJSON)
+```
+
+然后使用 session 对应的 key 计算 HMAC：
+
+```text
+signature = HMAC-SHA256(
+    sessionTokenKey,
+    encodedPayload
+)
+```
+
+再把签名编码：
+
+```text
+encodedSignature = Base64URL(signature)
+```
+
+最后拼接：
+
+```text
+refreshToken =
+encodedPayload + "." + encodedSignature
+```
+
+结构就是：
+
+```text
+payload.signature
+```
+
+需要注意，不要自己简单拼接：
+
+```go
+sha256(key + payload)
+```
+
+而应该使用标准的 HMAC：
+
+```go
+mac := hmac.New(
+    sha256.New,
+    sessionTokenKey,
+)
+
+mac.Write([]byte(encodedPayload))
+
+signature := mac.Sum(nil)
+```
+
+### 检查过程
+
+收到：
+
+```text
+encodedPayload.encodedSignature
+```
+
+第一步，拆分：
+
+```go
+parts := strings.Split(token, ".")
+
+encodedPayload := parts[0]
+encodedSignature := parts[1]
+```
+
+第二步，解码 payload：
+
+```go
+payloadBytes, err :=
+    base64.RawURLEncoding.DecodeString(encodedPayload)
+```
+
+得到：
+
+```json
+{
+  "v": 1,
+  "sid": "session-uuid",
+  "ctr": 0
+}
+```
+
+注意，此时解码出来的数据还不能直接使用，只能先拿 `sessionId` 查询数据库：
+
+```sql
+SELECT *
+FROM user_sessions
+WHERE id = ?;
+```
+
+第三步，从数据库取得：
+
+```text
+refresh_token_key
+```
+
+第四步，使用数据库里的 key 和收到的原始 `encodedPayload` 再计算一次 HMAC：
+
+```go
+mac := hmac.New(
+    sha256.New,
+    []byte(session.RefreshTokenKey),
+)
+
+mac.Write([]byte(encodedPayload))
+
+expectedSignature := mac.Sum(nil)
+```
+
+第五步，解码 token 中原有的签名：
+
+```go
+receivedSignature, err :=
+    base64.RawURLEncoding.DecodeString(
+        encodedSignature,
+    )
+```
+
+第六步，比较两个签名：
+
+```go
+if !hmac.Equal(
+    expectedSignature,
+    receivedSignature,
+) {
+    return ErrInvalidRefreshToken
+}
+```
+
+比较的是：
+
+```text
+重新计算出的signature
+        和
+token中携带的signature
+```
+
+不是比较两个完整 token 字符串。
+
+完整过程可以理解为：
+
+```text
+生成：
+
+payload
+  ↓ JSON
+payloadJSON
+  ↓ Base64URL
+encodedPayload
+  ↓ 使用sessionKey计算HMAC
+signature
+  ↓ Base64URL
+encodedSignature
+  ↓ 拼接
+encodedPayload.encodedSignature
+```
+
+检查：
+
+```text
+收到token
+  ↓ 拆分
+encodedPayload + encodedSignature
+  ↓ 解码payload
+获得sessionId
+  ↓ 查询数据库
+获得sessionKey
+  ↓ 重新计算HMAC
+expectedSignature
+  ↓ 与token中的signature比较
+相同：payload保持原样
+不同：拒绝
+```
+
+所以没有“解密”的过程：
+
+- Base64URL 可以直接解码。
+- `sessionTokenKey` 不会写入 token。
+- HMAC 不能反向还原 key。
+- 服务端只是使用相同的 key 和 payload，再计算一次并比较结果。
+
+/
+*/
+
 type RefreshTokenPayload struct {
 	Version   uint8  `json:"v"`
 	SessionID string `json:"sid"`
@@ -152,4 +364,21 @@ func decodeRefreshToken(
 		encodedPayload: encodedPayload,
 		signature:      signature,
 	}, nil
+}
+
+// Verify 使用sessionKey对token进行校验
+func (t *parsedRefreshToken) Verify(key []byte) bool {
+	if t == nil || len(key) < refreshTokenKeySize {
+		return false
+	}
+
+	mac := hmac.New(sha256.New, key)
+	_, _ = mac.Write([]byte(t.encodedPayload))
+
+	expectedSignature := mac.Sum(nil)
+
+	return hmac.Equal(
+		expectedSignature,
+		t.signature,
+	)
 }

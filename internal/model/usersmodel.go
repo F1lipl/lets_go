@@ -1,6 +1,12 @@
 package model
 
-import "github.com/zeromicro/go-zero/core/stores/sqlx"
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+)
 
 var _ UsersModel = (*customUsersModel)(nil)
 
@@ -9,6 +15,11 @@ type (
 	// and implement the added methods in customUsersModel.
 	UsersModel interface {
 		usersModel
+		UpdateLastLoginAt(
+			ctx context.Context,
+			userID string,
+			lastLoginAt time.Time,
+		) error
 		withSession(session sqlx.Session) UsersModel
 	}
 
@@ -26,4 +37,24 @@ func NewUsersModel(conn sqlx.SqlConn) UsersModel {
 
 func (m *customUsersModel) withSession(session sqlx.Session) UsersModel {
 	return NewUsersModel(sqlx.NewSqlConnFromSession(session))
+}
+
+func (m *customUsersModel) UpdateLastLoginAt(
+	ctx context.Context,
+	userID string,
+	lastLoginAt time.Time,
+) error {
+	query := fmt.Sprintf(
+		"update %s set `last_login_at` = ? where `user_id` = ?",
+		m.table,
+	)
+
+	_, err := m.conn.ExecCtx(
+		ctx,
+		query,
+		lastLoginAt,
+		userID,
+	)
+
+	return err
 }

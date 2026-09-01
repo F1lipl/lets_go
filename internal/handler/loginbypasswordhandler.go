@@ -6,10 +6,11 @@ package handler
 import (
 	"net/http"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
 	"userServer/internal/logic"
 	"userServer/internal/svc"
 	"userServer/internal/types"
+
+	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 func LoginByPasswordHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
@@ -21,11 +22,14 @@ func LoginByPasswordHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := logic.NewLoginByPasswordLogic(r.Context(), svcCtx)
-		resp, err := l.LoginByPassword(&req)
+		result, err := l.LoginByPassword(&req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
+			if result.RefreshToken != "" {
+				writeRefreshTokenCookie(w, result.RefreshToken, svcCtx.Config.Auth.RefreshExpire, true)
+			}
+			httpx.OkJsonCtx(r.Context(), w, result.Response)
 		}
 	}
 }

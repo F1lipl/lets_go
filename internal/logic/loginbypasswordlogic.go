@@ -12,6 +12,7 @@ import (
 	"userServer/internal/svc"
 	"userServer/internal/types"
 
+	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -31,7 +32,7 @@ func NewLoginByPasswordLogic(ctx context.Context, svcCtx *svc.ServiceContext) *L
 
 func (l *LoginByPasswordLogic) LoginByPassword(
 	req *types.LoginByPasswordReq,
-) (*types.LoginResp, error) {
+) (*LoginResult, error) {
 	var (
 		user *model.Users
 		err  error
@@ -55,9 +56,12 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 		l.Infow("使用了错误的登陆方式",
 			logx.Field("identifier", req.Identifier),
 		)
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   "identifierType 只能是 phoneNumber 或 username",
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 	}
 
@@ -67,9 +71,12 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 		l.Infow("登陆的用户不存在",
 			logx.Field("identifier", req.Identifier),
 			logx.Field("username", req.Identifier))
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 	}
 
@@ -84,9 +91,12 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 
 		code := ecode.DatabaseError
 
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 	}
 
@@ -96,9 +106,12 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 		l.Infow("密码错误",
 			logx.Field("identifier", req.Identifier),
 			logx.Field("username", req.Identifier))
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 	}
 
@@ -107,17 +120,23 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 	case 0, 3:
 		code := ecode.AccountDisabled
 
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 
 	case 2:
 		code := ecode.AccountPending
 
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 
 	case 1:
@@ -126,51 +145,45 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 	default:
 		code := ecode.AccountDisabled
 
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+			},
 		}, nil
 	}
 
-	accessToken, err := generateAccessToken(
-		l.svcCtx.Config.Auth.AccessSecret,
-		l.svcCtx.Config.Auth.AccessExpire,
-		user.UserId,
-		"access",
-	)
+	//判断设备信息
+	deviceid := &req.Device.DeviceID
+	if *deviceid == "" {
+		*deviceid = uuid.NewString()
+	}
+	err = validateDeviceInfo(&req.Device)
 	if err != nil {
-		l.Errorf("generate access token failed: %v", err)
-
-		code := ecode.InternalError
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		l.Infow("device info is validate failed", logx.Field("err", err), logx.Field("userId", user.UserId), logx.Field("deviceInfo", req.Device))
+		code := ecode.InvalidDeviceInfo
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+				DeviceID:  *deviceid,
+			},
 		}, nil
 	}
-
-	refreshToken, err := generateAccessToken(
-		l.svcCtx.Config.Auth.RefreshSecret,
-		l.svcCtx.Config.Auth.RefreshExpire,
-		user.UserId,
-		"refresh",
-	)
+	Login, err := finalizeLogin(l.svcCtx, l.ctx, user, &req.Device)
 	if err != nil {
-		l.Errorf("generate refresh token failed: %v", err)
-
-		code := ecode.InternalError
-		return &types.LoginResp{
-			ErrorCode: code.Int(),
-			Message:   code.Message(),
+		l.Infow("login error", logx.Field("err", err))
+		code := ecode.LoginCredentialInvalid
+		return &LoginResult{
+			RefreshToken: "",
+			Response: &types.LoginResp{
+				ErrorCode: code.Int(),
+				Message:   code.String(),
+				DeviceID:  *deviceid,
+			},
 		}, nil
 	}
-
-	return &types.LoginResp{
-		ErrorCode:        ecode.Success.Int(),
-		Message:          ecode.Success.Message(),
-		UserID:           user.UserId,
-		AccessToken:      accessToken,
-		RefreshToken:     refreshToken,
-		AccessExpiresIn:  l.svcCtx.Config.Auth.AccessExpire,
-		RefreshExpiresIn: l.svcCtx.Config.Auth.RefreshExpire,
-	}, nil
+	return Login, nil
 }

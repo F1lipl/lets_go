@@ -6,10 +6,11 @@ package handler
 import (
 	"net/http"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
 	"userServer/internal/logic"
 	"userServer/internal/svc"
 	"userServer/internal/types"
+
+	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 func LoginByPhoneHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
@@ -21,11 +22,14 @@ func LoginByPhoneHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := logic.NewLoginByPhoneLogic(r.Context(), svcCtx)
-		resp, err := l.LoginByPhone(&req)
+		result, err := l.LoginByPhone(&req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
+			if result.RefreshToken != "" {
+				writeRefreshTokenCookie(w, result.RefreshToken, svcCtx.Config.Auth.RefreshExpire, true)
+			}
+			httpx.OkJsonCtx(r.Context(), w, result.Response)
 		}
 	}
 }
