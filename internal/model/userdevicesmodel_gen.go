@@ -19,17 +19,17 @@ import (
 var (
 	userDevicesFieldNames          = builder.RawFieldNames(&UserDevices{})
 	userDevicesRows                = strings.Join(userDevicesFieldNames, ",")
-	userDevicesRowsExpectAutoSet   = strings.Join(stringx.Remove(userDevicesFieldNames, "`id`", "`create_at`", "`create_time`", "`created_at`", "`update_at`", "`update_time`", "`updated_at`"), ",")
+	userDevicesRowsExpectAutoSet   = strings.Join(stringx.Remove(userDevicesFieldNames, "`create_at`", "`create_time`", "`created_at`", "`update_at`", "`update_time`", "`updated_at`"), ",")
 	userDevicesRowsWithPlaceHolder = strings.Join(stringx.Remove(userDevicesFieldNames, "`id`", "`create_at`", "`create_time`", "`created_at`", "`update_at`", "`update_time`", "`updated_at`"), "=?,") + "=?"
 )
 
 type (
 	userDevicesModel interface {
 		Insert(ctx context.Context, data *UserDevices) (sql.Result, error)
-		FindOne(ctx context.Context, id uint64) (*UserDevices, error)
-		FindOneByUserIdDeviceId(ctx context.Context, userId string, deviceId string) (*UserDevices, error)
+		FindOne(ctx context.Context, id string) (*UserDevices, error)
+		FindOneByUserIdClientInstanceId(ctx context.Context, userId string, clientInstanceId string) (*UserDevices, error)
 		Update(ctx context.Context, data *UserDevices) error
-		Delete(ctx context.Context, id uint64) error
+		Delete(ctx context.Context, id string) error
 	}
 
 	defaultUserDevicesModel struct {
@@ -38,15 +38,17 @@ type (
 	}
 
 	UserDevices struct {
-		Id           uint64    `db:"id"`
-		UserId       string    `db:"user_id"`
-		DeviceId     string    `db:"device_id"`
-		DeviceName   string    `db:"device_name"`
-		Platform     string    `db:"platform"`
-		AppVersion   string    `db:"app_version"`
-		FirstLoginAt time.Time `db:"first_login_at"`
-		LastLoginAt  time.Time `db:"last_login_at"`
-		Status       uint64    `db:"status"`
+		Id               string    `db:"id"`
+		UserId           string    `db:"user_id"`
+		ClientInstanceId string    `db:"client_instance_id"` // 后端签发的客户端实例标识
+		DeviceName       string    `db:"device_name"`
+		Platform         string    `db:"platform"`
+		AppVersion       string    `db:"app_version"`
+		FirstLoginAt     time.Time `db:"first_login_at"`
+		LastLoginAt      time.Time `db:"last_login_at"`
+		Status           uint64    `db:"status"`
+		CreatedAt        time.Time `db:"created_at"`
+		UpdatedAt        time.Time `db:"updated_at"`
 	}
 )
 
@@ -57,13 +59,13 @@ func newUserDevicesModel(conn sqlx.SqlConn) *defaultUserDevicesModel {
 	}
 }
 
-func (m *defaultUserDevicesModel) Delete(ctx context.Context, id uint64) error {
+func (m *defaultUserDevicesModel) Delete(ctx context.Context, id string) error {
 	query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
 	_, err := m.conn.ExecCtx(ctx, query, id)
 	return err
 }
 
-func (m *defaultUserDevicesModel) FindOne(ctx context.Context, id uint64) (*UserDevices, error) {
+func (m *defaultUserDevicesModel) FindOne(ctx context.Context, id string) (*UserDevices, error) {
 	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", userDevicesRows, m.table)
 	var resp UserDevices
 	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
@@ -77,10 +79,10 @@ func (m *defaultUserDevicesModel) FindOne(ctx context.Context, id uint64) (*User
 	}
 }
 
-func (m *defaultUserDevicesModel) FindOneByUserIdDeviceId(ctx context.Context, userId string, deviceId string) (*UserDevices, error) {
+func (m *defaultUserDevicesModel) FindOneByUserIdClientInstanceId(ctx context.Context, userId string, clientInstanceId string) (*UserDevices, error) {
 	var resp UserDevices
-	query := fmt.Sprintf("select %s from %s where `user_id` = ? and `device_id` = ? limit 1", userDevicesRows, m.table)
-	err := m.conn.QueryRowCtx(ctx, &resp, query, userId, deviceId)
+	query := fmt.Sprintf("select %s from %s where `user_id` = ? and `client_instance_id` = ? limit 1", userDevicesRows, m.table)
+	err := m.conn.QueryRowCtx(ctx, &resp, query, userId, clientInstanceId)
 	switch err {
 	case nil:
 		return &resp, nil
@@ -92,14 +94,14 @@ func (m *defaultUserDevicesModel) FindOneByUserIdDeviceId(ctx context.Context, u
 }
 
 func (m *defaultUserDevicesModel) Insert(ctx context.Context, data *UserDevices) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?)", m.table, userDevicesRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.UserId, data.DeviceId, data.DeviceName, data.Platform, data.AppVersion, data.FirstLoginAt, data.LastLoginAt, data.Status)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, userDevicesRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.UserId, data.ClientInstanceId, data.DeviceName, data.Platform, data.AppVersion, data.FirstLoginAt, data.LastLoginAt, data.Status)
 	return ret, err
 }
 
 func (m *defaultUserDevicesModel) Update(ctx context.Context, newData *UserDevices) error {
 	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, userDevicesRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, newData.UserId, newData.DeviceId, newData.DeviceName, newData.Platform, newData.AppVersion, newData.FirstLoginAt, newData.LastLoginAt, newData.Status, newData.Id)
+	_, err := m.conn.ExecCtx(ctx, query, newData.UserId, newData.ClientInstanceId, newData.DeviceName, newData.Platform, newData.AppVersion, newData.FirstLoginAt, newData.LastLoginAt, newData.Status, newData.Id)
 	return err
 }
 

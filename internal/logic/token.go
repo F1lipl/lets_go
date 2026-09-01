@@ -6,7 +6,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-func generateAccessToken(secret string, expire int64, userId string) (string, error) {
+func generateAccessToken(secret string, expire int64, userId string, tokenType string) (string, error) {
 	now := time.Now().Unix()
 	claims := jwt.MapClaims{
 		"iat":    now,
@@ -14,7 +14,7 @@ func generateAccessToken(secret string, expire int64, userId string) (string, er
 		"sub":    userId,
 		"userId": userId,
 		//"sessionId": sessionId,
-		"tokenType": "access",
+		"tokenType": tokenType,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secret))
