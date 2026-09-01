@@ -3,11 +3,11 @@ package logic
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
+	"time"
 	"unicode/utf8"
 	"userServer/internal/model"
-	"userServer/internal/svc"
-
 	"userServer/internal/types"
 
 	"github.com/google/uuid"
@@ -22,9 +22,38 @@ var supportedPlatforms = map[string]struct{}{
 	"ios":     {},
 }
 
+func createLoginDevice(
+	ctx context.Context,
+	deviceModel model.UserDevicesModel,
+	userID string,
+	info types.DeviceInfo,
+	now time.Time,
+) (*model.UserDevices, error) {
+	device := &model.UserDevices{
+		Id:           uuid.NewString(),
+		UserId:       userID,
+		DeviceName:   info.DeviceName,
+		Platform:     info.Platform,
+		AppVersion:   info.AppVersion,
+		FirstLoginAt: now,
+		LastLoginAt:  now,
+		Status:       1,
+	}
+
+	if _, err := deviceModel.Insert(ctx, device); err != nil {
+		return nil, fmt.Errorf("insert device: %w", err)
+	}
+
+	return device, nil
+}
+
 func validateDeviceInfo(
-	device types.DeviceInfo,
-) (types.DeviceInfo, error) {
+	device *types.DeviceInfo,
+) error {
+	if device == nil {
+		return errors.New("设备信息不能为空")
+	}
+
 	// 去除首尾空格
 	device.DeviceID = strings.TrimSpace(device.DeviceID)
 	device.DeviceName = strings.TrimSpace(device.DeviceName)
@@ -33,53 +62,90 @@ func validateDeviceInfo(
 	)
 	device.AppVersion = strings.TrimSpace(device.AppVersion)
 
-	if device.DeviceID == "" {
-		return types.DeviceInfo{}, errors.New("deviceId不能为空")
-	}
+	// 首次登录允许不传deviceId；非空时必须是后端签发的标准UUID。
+	if device.DeviceID != "" {
+		if len(device.DeviceID) != 36 {
+			return errors.New("deviceId长度不正确")
+		}
 
-	if len(device.DeviceID) > 64 {
-		return types.DeviceInfo{}, errors.New("deviceId长度不能超过64")
-	}
-
-	// 如果约定客户端必须使用UUID作为deviceId
-	if _, err := uuid.Parse(device.DeviceID); err != nil {
-		return types.DeviceInfo{}, errors.New("deviceId格式不正确")
+		if _, err := uuid.Parse(device.DeviceID); err != nil {
+			return errors.New("deviceId格式不正确")
+		}
 	}
 
 	if device.DeviceName == "" {
-		return types.DeviceInfo{}, errors.New("deviceName不能为空")
+		return errors.New("deviceName不能为空")
 	}
 
 	if utf8.RuneCountInString(device.DeviceName) > 128 {
-		return types.DeviceInfo{}, errors.New("deviceName长度不能超过128")
+		return errors.New("deviceName长度不能超过128")
 	}
 
 	if _, ok := supportedPlatforms[device.Platform]; !ok {
-		return types.DeviceInfo{}, errors.New("platform不受支持")
+		return errors.New("platform不受支持")
 	}
 
 	if utf8.RuneCountInString(device.AppVersion) > 32 {
-		return types.DeviceInfo{}, errors.New("appVersion长度不能超过32")
+		return errors.New("appVersion长度不能超过32")
 	}
 
-	return device, nil
+	return nil
 }
 
-func saveLoginDevice(
+var errDeviceDisabled = errors.New("device disabled")
+
+func resolveLoginDevice(
 	ctx context.Context,
-	svcCtx *svc.ServiceContext,
+	deviceModel model.UserDevicesModel,
 	userID string,
-	device types.DeviceInfo,
-) error {
-	return svcCtx.UserDeviceModel.UpsertLogin(
+	info types.DeviceInfo,
+) (*model.UserDevices, error) {
+	info.DeviceID = strings.TrimSpace(info.DeviceID)
+	now := time.Now()
+
+	// 首次登录，由后端创建设备ID
+	if info.DeviceID == "" {
+		return createLoginDevice(
+			ctx,
+			deviceModel,
+			userID,
+			info,
+			now,
+		)
+	}
+
+	device, err := deviceModel.FindOneByIdUserId(
 		ctx,
-		&model.UserDevices{
-			Id:               uuid.NewString(),
-			UserId:           userID,
-			ClientInstanceId: device.DeviceID,
-			DeviceName:       device.DeviceName,
-			Platform:         device.Platform,
-			AppVersion:       device.AppVersion,
-		},
+		info.DeviceID,
+		userID,
 	)
+
+	if errors.Is(err, model.ErrNotFound) {
+		// 收到的ID已经无法对应设备记录，签发新的ID
+		return createLoginDevice(
+			ctx,
+			deviceModel,
+			userID,
+			info,
+			now,
+		)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("find device: %w", err)
+	}
+
+	if device.Status != 1 {
+		return nil, errDeviceDisabled
+	}
+
+	device.DeviceName = info.DeviceName
+	device.Platform = info.Platform
+	device.AppVersion = info.AppVersion
+	device.LastLoginAt = now
+
+	if err := deviceModel.Update(ctx, device); err != nil {
+		return nil, fmt.Errorf("update device: %w", err)
+	}
+	return device, nil
 }

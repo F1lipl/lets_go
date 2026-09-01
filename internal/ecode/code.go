@@ -6,6 +6,7 @@
 //   - 200xxx: user account
 //   - 300xxx: login and token
 //   - 400xxx: verification code
+//   - 500xxx: user device
 //   - 900xxx: internal service dependencies
 package ecode
 
@@ -37,6 +38,10 @@ const (
 	VerificationCodeExpired     Code = 400002
 	VerificationCodeTooFrequent Code = 400003
 
+	InvalidDeviceInfo Code = 500001
+	DeviceNotFound    Code = 500002
+	DeviceDisabled    Code = 500003
+
 	InternalError Code = 900001
 	DatabaseError Code = 900002
 	CacheError    Code = 900003
@@ -61,6 +66,9 @@ var messages = map[Code]string{
 	VerificationCodeInvalid:     "验证码不正确",
 	VerificationCodeExpired:     "验证码已过期",
 	VerificationCodeTooFrequent: "验证码发送过于频繁",
+	InvalidDeviceInfo:           "设备信息不正确",
+	DeviceNotFound:              "设备不存在",
+	DeviceDisabled:              "当前设备不可用",
 	InternalError:               "服务暂时不可用",
 	DatabaseError:               "数据处理失败",
 	CacheError:                  "临时数据处理失败",

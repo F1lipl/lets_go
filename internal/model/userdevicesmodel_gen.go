@@ -27,7 +27,7 @@ type (
 	userDevicesModel interface {
 		Insert(ctx context.Context, data *UserDevices) (sql.Result, error)
 		FindOne(ctx context.Context, id string) (*UserDevices, error)
-		FindOneByUserIdClientInstanceId(ctx context.Context, userId string, clientInstanceId string) (*UserDevices, error)
+		FindOneByIdUserId(ctx context.Context, id string, userId string) (*UserDevices, error)
 		Update(ctx context.Context, data *UserDevices) error
 		Delete(ctx context.Context, id string) error
 	}
@@ -38,17 +38,16 @@ type (
 	}
 
 	UserDevices struct {
-		Id               string    `db:"id"`
-		UserId           string    `db:"user_id"`
-		ClientInstanceId string    `db:"client_instance_id"` // 后端签发的客户端实例标识
-		DeviceName       string    `db:"device_name"`
-		Platform         string    `db:"platform"`
-		AppVersion       string    `db:"app_version"`
-		FirstLoginAt     time.Time `db:"first_login_at"`
-		LastLoginAt      time.Time `db:"last_login_at"`
-		Status           uint64    `db:"status"`
-		CreatedAt        time.Time `db:"created_at"`
-		UpdatedAt        time.Time `db:"updated_at"`
+		Id           string    `db:"id"` // 后端生成并返回给客户端的设备实例标识
+		UserId       string    `db:"user_id"`
+		DeviceName   string    `db:"device_name"`
+		Platform     string    `db:"platform"`
+		AppVersion   string    `db:"app_version"`
+		FirstLoginAt time.Time `db:"first_login_at"`
+		LastLoginAt  time.Time `db:"last_login_at"`
+		Status       uint64    `db:"status"`
+		CreatedAt    time.Time `db:"created_at"`
+		UpdatedAt    time.Time `db:"updated_at"`
 	}
 )
 
@@ -79,10 +78,10 @@ func (m *defaultUserDevicesModel) FindOne(ctx context.Context, id string) (*User
 	}
 }
 
-func (m *defaultUserDevicesModel) FindOneByUserIdClientInstanceId(ctx context.Context, userId string, clientInstanceId string) (*UserDevices, error) {
+func (m *defaultUserDevicesModel) FindOneByIdUserId(ctx context.Context, id string, userId string) (*UserDevices, error) {
 	var resp UserDevices
-	query := fmt.Sprintf("select %s from %s where `user_id` = ? and `client_instance_id` = ? limit 1", userDevicesRows, m.table)
-	err := m.conn.QueryRowCtx(ctx, &resp, query, userId, clientInstanceId)
+	query := fmt.Sprintf("select %s from %s where `id` = ? and `user_id` = ? limit 1", userDevicesRows, m.table)
+	err := m.conn.QueryRowCtx(ctx, &resp, query, id, userId)
 	switch err {
 	case nil:
 		return &resp, nil
@@ -94,14 +93,14 @@ func (m *defaultUserDevicesModel) FindOneByUserIdClientInstanceId(ctx context.Co
 }
 
 func (m *defaultUserDevicesModel) Insert(ctx context.Context, data *UserDevices) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, userDevicesRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.UserId, data.ClientInstanceId, data.DeviceName, data.Platform, data.AppVersion, data.FirstLoginAt, data.LastLoginAt, data.Status)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?)", m.table, userDevicesRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.UserId, data.DeviceName, data.Platform, data.AppVersion, data.FirstLoginAt, data.LastLoginAt, data.Status)
 	return ret, err
 }
 
 func (m *defaultUserDevicesModel) Update(ctx context.Context, newData *UserDevices) error {
 	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, userDevicesRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, newData.UserId, newData.ClientInstanceId, newData.DeviceName, newData.Platform, newData.AppVersion, newData.FirstLoginAt, newData.LastLoginAt, newData.Status, newData.Id)
+	_, err := m.conn.ExecCtx(ctx, query, newData.UserId, newData.DeviceName, newData.Platform, newData.AppVersion, newData.FirstLoginAt, newData.LastLoginAt, newData.Status, newData.Id)
 	return err
 }
 

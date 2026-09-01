@@ -4,7 +4,7 @@
 package types
 
 type DeviceInfo struct {
-	DeviceID   string `json:"deviceId"`
+	DeviceID   string `json:"deviceId,omitempty"`
 	DeviceName string `json:"deviceName"`
 	Platform   string `json:"platform"`
 	AppVersion string `json:"appVersion"`
@@ -33,13 +33,10 @@ type LoginByPhoneReq struct {
 }
 
 type LoginResp struct {
-	ErrorCode        int    `json:"errorCode"`
-	Message          string `json:"message"`
-	UserID           string `json:"userId,omitempty"`
-	AccessToken      string `json:"accessToken,omitempty"`
-	RefreshToken     string `json:"refreshToken,omitempty"`
-	AccessExpiresIn  int64  `json:"accessExpiresIn,omitempty"`
-	RefreshExpiresIn int64  `json:"refreshExpiresIn,omitempty"`
+	ErrorCode   int    `json:"errorCode"`
+	Message     string `json:"message"`
+	DeviceID    string `json:"deviceId,omitempty"`
+	AccessToken string `json:"accessToken,omitempty"`
 }
 
 type RegisterReq struct {

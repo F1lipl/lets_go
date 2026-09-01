@@ -16,6 +16,7 @@ type ServiceContext struct {
 	Redis           *redis.Redis
 	UserModel       model.UsersModel
 	UserDeviceModel model.UserDevicesModel
+	Sqlconn         sqlx.SqlConn
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -25,5 +26,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Redis:           redis.MustNewRedis(c.Redis),
 		UserModel:       model.NewUsersModel(mysqlConn),
 		UserDeviceModel: model.NewUserDevicesModel(mysqlConn),
+		Sqlconn:         mysqlConn,
 	}
 }

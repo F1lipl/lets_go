@@ -12,6 +12,7 @@ import (
 	"userServer/internal/svc"
 	"userServer/internal/types"
 
+	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -190,16 +191,32 @@ func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *type
 		}, nil
 	}
 
-	accessToken, err := generateAccessToken(l.svcCtx.Config.Auth.AccessSecret, l.svcCtx.Config.Auth.AccessExpire, user.UserId, "access")
-	if err != nil {
-		l.Errorw("generate access token failed", logx.Field("err", err), logx.Field("userId", user.UserId))
+	//accessToken, err := generateAccessToken(l.svcCtx.Config.Auth.AccessSecret, l.svcCtx.Config.Auth.AccessExpire, user.UserId, "access")
+	//if err != nil {
+	//	l.Errorw("generate access token failed", logx.Field("err", err), logx.Field("userId", user.UserId))
+	//
+	//	code := ecode.InternalError
+	//	return &types.LoginResp{
+	//		ErrorCode: code.Int(),
+	//		Message:   code.Message(),
+	//	}, nil
+	//}
 
-		code := ecode.InternalError
+	//判断设备信息
+	deviceid := &req.Device.DeviceID
+	if *deviceid == "" {
+		*deviceid = uuid.NewString()
+	}
+	err = validateDeviceInfo(&req.Device)
+	if err != nil {
+		l.Infow("device info is validate failed", logx.Field("err", err), logx.Field("userId", user.UserId), logx.Field("deviceInfo", req.Device))
+		code := ecode.InvalidDeviceInfo
 		return &types.LoginResp{
 			ErrorCode: code.Int(),
 			Message:   code.Message(),
 		}, nil
 	}
+
 	refreshToken, err := generateAccessToken(l.svcCtx.Config.Auth.RefreshSecret, l.svcCtx.Config.Auth.RefreshExpire, user.UserId, "refresh")
 	if err != nil {
 		l.Errorw("generate refresh token failed", logx.Field("err", err), logx.Field("userId", user.UserId))
