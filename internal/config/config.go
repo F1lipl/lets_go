@@ -18,5 +18,6 @@ type Config struct {
 		AccessExpire  int64
 		RefreshSecret string
 		RefreshExpire int64
+		CookieSecure  bool
 	}
 }

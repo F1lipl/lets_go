@@ -35,3 +35,4 @@ Auth:
   AccessExpire: 7200
   RefreshSecret: "A+ar5ZArgYdECzyt+lgKVvhVB19dJxcDsYxabv11hwqehTef2TXec9JBtQVgAFjp"
   RefreshExpire: 604800 # 七天
+  CookieSecure: false # 本地HTTP调试；部署HTTPS后改为true

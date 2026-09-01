@@ -48,6 +48,11 @@ type (
 		DeviceID    string `json:"deviceId,omitempty"`
 		AccessToken string `json:"accessToken,omitempty"`
 	}
+	RefreshResp {
+		ErrorCode   int    `json:"errorCode"`
+		Message     string `json:"message"`
+		AccessToken string `json:"accessToken,omitempty"`
+	}
 )
 
 service userServer-api {
@@ -62,5 +67,8 @@ service userServer-api {
 
 	@handler LoginByPasswordHandler
 	post /login/password (LoginByPasswordReq) returns (LoginResp)
+
+	@handler RefreshHandler
+	post /refresh returns (RefreshResp)
 }
 

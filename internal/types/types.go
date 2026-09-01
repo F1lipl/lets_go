@@ -39,6 +39,12 @@ type LoginResp struct {
 	AccessToken string `json:"accessToken,omitempty"`
 }
 
+type RefreshResp struct {
+	ErrorCode   int    `json:"errorCode"`
+	Message     string `json:"message"`
+	AccessToken string `json:"accessToken,omitempty"`
+}
+
 type RegisterReq struct {
 	UserName    string `json:"userName"`
 	Password    string `json:"password"`

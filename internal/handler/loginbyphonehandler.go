@@ -4,6 +4,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"userServer/internal/logic"
@@ -25,11 +26,27 @@ func LoginByPhoneHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		result, err := l.LoginByPhone(&req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
-		} else {
-			if result.RefreshToken != "" {
-				writeRefreshTokenCookie(w, result.RefreshToken, svcCtx.Config.Auth.RefreshExpire, true)
-			}
-			httpx.OkJsonCtx(r.Context(), w, result.Response)
+			return
 		}
+
+		if result == nil || result.Response == nil {
+			httpx.ErrorCtx(
+				r.Context(),
+				w,
+				errors.New("login result is nil"),
+			)
+			return
+		}
+
+		if result.RefreshToken != "" {
+			writeRefreshTokenCookie(
+				w,
+				result.RefreshToken,
+				svcCtx.Config.Auth.RefreshExpire,
+				svcCtx.Config.Auth.CookieSecure,
+			)
+		}
+
+		httpx.OkJsonCtx(r.Context(), w, result.Response)
 	}
 }
