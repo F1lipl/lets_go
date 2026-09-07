@@ -1,6 +1,7 @@
-/logs/
-/userserver.exe
-/migrations
-/deploy
-/etc
-
+**/.idea/
+**/.vscode/
+**/logs/
+**/*.exe
+**/*.test
+**/.env
+**/*.local.yaml
