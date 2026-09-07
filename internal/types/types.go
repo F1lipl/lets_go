@@ -65,8 +65,8 @@ type RegisterResp struct {
 type UserInfoResp struct {
 	ErrorCode int    `json:"errorCode"`
 	Message   string `json:"message"`
-	UserID    string `json:"userId"`
-	Username  string `json:"username"`
-	Nickname  string `json:"nickname"`
-	AvatarURL string `json:"avatarUrl"`
+	UserID    string `json:"userId,omitempty"`
+	Username  string `json:"username,omitempty"`
+	Nickname  string `json:"nickname,omitempty"`
+	AvatarURL string `json:"avatarUrl,omitempty"`
 }
