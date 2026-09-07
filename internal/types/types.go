@@ -39,6 +39,11 @@ type LoginResp struct {
 	AccessToken string `json:"accessToken,omitempty"`
 }
 
+type LogoutResp struct {
+	ErrorCode int    `json:"errorCode"`
+	Message   string `json:"message"`
+}
+
 type RefreshResp struct {
 	ErrorCode   int    `json:"errorCode"`
 	Message     string `json:"message"`
@@ -55,4 +60,13 @@ type RegisterResp struct {
 	ErrorCode int    `json:"errorCode"`
 	Message   string `json:"message"`
 	UserID    string `json:"userId,omitempty"`
+}
+
+type UserInfoResp struct {
+	ErrorCode int    `json:"errorCode"`
+	Message   string `json:"message"`
+	UserID    string `json:"userId"`
+	Username  string `json:"username"`
+	Nickname  string `json:"nickname"`
+	AvatarURL string `json:"avatarUrl"`
 }

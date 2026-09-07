@@ -57,7 +57,7 @@ func (l *RefreshLogic) Refresh(refreshToken string) (*RefreshResult, error) {
 
 			userSession, err := sessionModel.FindOneForUpdate(ctx, sessionID)
 			if errors.Is(err, model.ErrNotFound) {
-				result = newRefreshResult(ecode.RefreshTokenInvalid)
+				result = newRefreshResult(ecode.SessionNotFound)
 				return nil
 			}
 			if err != nil {
@@ -73,14 +73,14 @@ func (l *RefreshLogic) Refresh(refreshToken string) (*RefreshResult, error) {
 
 			if userSession.Status != 1 {
 				l.Infow("session is inactive", logx.Field("sessionId", sessionID))
-				result = newRefreshResult(ecode.RefreshTokenInvalid)
+				result = newRefreshResult(ecode.SessionInactive)
 				return nil
 			}
 
 			now := time.Now()
 			if !now.Before(userSession.NotAfter) {
 				l.Infow("session expired", logx.Field("sessionId", sessionID))
-				result = newRefreshResult(ecode.RefreshTokenExpired)
+				result = newRefreshResult(ecode.SessionExpired)
 				return nil
 			}
 

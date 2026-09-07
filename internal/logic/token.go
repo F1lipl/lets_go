@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -381,4 +382,15 @@ func (t *parsedRefreshToken) Verify(key []byte) bool {
 		expectedSignature,
 		t.signature,
 	)
+}
+func getAccessClaims(context context.Context) (userId string, sessionId string, err error) {
+	userId, ok := context.Value("userId").(string)
+	if !ok || userId == "" {
+		return "", "", errors.New("access token中缺少userId")
+	}
+	sessionId, ok = context.Value("sessionId").(string)
+	if !ok || sessionId == "" {
+		return "", "", errors.New("access token中缺少userId")
+	}
+	return userId, sessionId, nil
 }

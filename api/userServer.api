@@ -53,6 +53,18 @@ type (
 		Message     string `json:"message"`
 		AccessToken string `json:"accessToken,omitempty"`
 	}
+	LogoutResp {
+		ErrorCode int    `json:"errorCode"`
+		Message   string `json:"message"`
+	}
+	UserInfoResp {
+		ErrorCode int    `json:"errorCode"`
+		Message   string `json:"message"`
+		UserID    string `json:"userId"`
+		Username  string `json:"username"`
+		Nickname  string `json:"nickname"`
+		AvatarURL string `json:"avatarUrl"`
+	}
 )
 
 service userServer-api {
@@ -70,5 +82,16 @@ service userServer-api {
 
 	@handler RefreshHandler
 	post /refresh returns (RefreshResp)
+}
+
+@server (
+	jwt: Auth
+)
+service userServer-api {
+	@handler UserInfoHandler
+	get /me returns (UserInfoResp)
+
+	@handler LogoutHandler
+	post /logout returns (LogoutResp)
 }
 

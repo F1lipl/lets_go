@@ -43,3 +43,19 @@ func writeRefreshTokenCookie(w http.ResponseWriter,
 		SameSite: http.SameSiteLaxMode,
 	})
 }
+
+func clearRefreshTokenCookie(
+	w http.ResponseWriter,
+	secure bool,
+) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     refreshTokenCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		Expires:  time.Unix(1, 0),
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+	})
+}

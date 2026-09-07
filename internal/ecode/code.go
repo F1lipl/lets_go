@@ -7,6 +7,7 @@
 //   - 300xxx: login and token
 //   - 400xxx: verification code
 //   - 500xxx: user device
+//   - 600xxx: user session
 //   - 900xxx: internal service dependencies
 package ecode
 
@@ -42,6 +43,11 @@ const (
 	DeviceNotFound    Code = 500002
 	DeviceDisabled    Code = 500003
 
+	SessionNotFound      Code = 600001
+	SessionInactive      Code = 600002
+	SessionExpired       Code = 600003
+	SessionLimitExceeded Code = 600004
+
 	InternalError Code = 900001
 	DatabaseError Code = 900002
 	CacheError    Code = 900003
@@ -69,6 +75,10 @@ var messages = map[Code]string{
 	InvalidDeviceInfo:           "设备信息不正确",
 	DeviceNotFound:              "设备不存在",
 	DeviceDisabled:              "当前设备不可用",
+	SessionNotFound:             "登录会话不存在",
+	SessionInactive:             "登录会话已失效",
+	SessionExpired:              "登录会话已过期",
+	SessionLimitExceeded:        "登录会话数量已达上限",
 	InternalError:               "服务暂时不可用",
 	DatabaseError:               "数据处理失败",
 	CacheError:                  "临时数据处理失败",
