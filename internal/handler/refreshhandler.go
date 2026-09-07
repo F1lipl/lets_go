@@ -47,13 +47,28 @@ func RefreshHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 					ErrorCode: code.Int(),
 					Message:   code.Message(),
 				})
+			return
 		}
 		l := logic.NewRefreshLogic(r.Context(), svcCtx)
-		resp, err := l.Refresh(refreshToken)
+		result, err := l.Refresh(refreshToken)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
-		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
+			return
 		}
+		if result == nil || result.Response == nil {
+			httpx.ErrorCtx(r.Context(), w, errors.New("refresh result is nil"))
+			return
+		}
+
+		if result.RefreshToken != "" {
+			writeRefreshTokenCookie(
+				w,
+				result.RefreshToken,
+				result.RefreshExpireSeconds,
+				svcCtx.Config.Auth.CookieSecure,
+			)
+		}
+
+		httpx.OkJsonCtx(r.Context(), w, result.Response)
 	}
 }
