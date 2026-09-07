@@ -67,8 +67,27 @@ func RefreshHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 				result.RefreshExpireSeconds,
 				svcCtx.Config.Auth.CookieSecure,
 			)
+		} else if shouldClearRefreshTokenCookie(result.Response.ErrorCode) {
+			clearRefreshTokenCookie(
+				w,
+				svcCtx.Config.Auth.CookieSecure,
+			)
 		}
 
 		httpx.OkJsonCtx(r.Context(), w, result.Response)
+	}
+}
+
+func shouldClearRefreshTokenCookie(errorCode int) bool {
+	switch ecode.Code(errorCode) {
+	case ecode.RefreshTokenInvalid,
+		ecode.RefreshTokenExpired,
+		ecode.RefreshTokenAlreadyUsed,
+		ecode.SessionNotFound,
+		ecode.SessionInactive,
+		ecode.SessionExpired:
+		return true
+	default:
+		return false
 	}
 }

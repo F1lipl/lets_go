@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
@@ -15,6 +16,13 @@ type (
 	UserSessionsModel interface {
 		userSessionsModel
 		FindOneForUpdate(ctx context.Context, id string) (*UserSessions, error)
+		RevokeOtherByUserID(
+			ctx context.Context,
+			userID string,
+			currentSessionID string,
+			revokedAt time.Time,
+			reason string,
+		) error
 		withSession(session sqlx.Session) UserSessionsModel
 	}
 
@@ -54,4 +62,33 @@ func (m *customUserSessionsModel) FindOneForUpdate(
 	}
 
 	return &resp, nil
+}
+func (m *customUserSessionsModel) RevokeOtherByUserID(
+	ctx context.Context,
+	userID string,
+	currentSessionID string,
+	revokedAt time.Time,
+	reason string,
+) error {
+	query := fmt.Sprintf(
+		`
+		update %s set status=0,
+					  revoked_at=?,
+		              reason_reason=?,
+		where user_id=? 
+		AND id <> ?
+		AND status=1	              
+	`, m.table)
+	_, err := m.conn.ExecCtx(
+		ctx,
+		query,
+		revokedAt,
+		reason,
+		userID,
+		currentSessionID,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
 }

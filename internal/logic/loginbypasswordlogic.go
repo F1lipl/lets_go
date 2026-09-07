@@ -52,7 +52,7 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 		)
 
 	default:
-		code := ecode.InvalidRequest
+		code := ecode.InvalidLoginIdentifierType
 		l.Infow("使用了错误的登陆方式",
 			logx.Field("identifier", req.Identifier),
 		)
@@ -175,7 +175,10 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 	Login, err := finalizeLogin(l.svcCtx, l.ctx, user, &req.Device)
 	if err != nil {
 		l.Infow("login error", logx.Field("err", err))
-		code := ecode.LoginCredentialInvalid
+		code := ecode.InternalError
+		if errors.Is(err, errDeviceDisabled) {
+			code = ecode.DeviceDisabled
+		}
 		return &LoginResult{
 			RefreshToken: "",
 			Response: &types.LoginResp{

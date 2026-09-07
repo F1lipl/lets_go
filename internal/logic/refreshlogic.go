@@ -64,10 +64,14 @@ func (l *RefreshLogic) Refresh(refreshToken string) (*RefreshResult, error) {
 				return fmt.Errorf("find session for update: %w", err)
 			}
 
-			if !parsedRefreshToken.Verify([]byte(userSession.RefreshTokenKey)) ||
-				parsedRefreshToken.Payload.Counter != userSession.RefreshTokenCounter {
+			if !parsedRefreshToken.Verify([]byte(userSession.RefreshTokenKey)) {
 				l.Infow("refresh token does not match session", logx.Field("sessionId", sessionID))
 				result = newRefreshResult(ecode.RefreshTokenInvalid)
+				return nil
+			}
+			if parsedRefreshToken.Payload.Counter != userSession.RefreshTokenCounter {
+				l.Infow("refresh token has already been used", logx.Field("sessionId", sessionID))
+				result = newRefreshResult(ecode.RefreshTokenAlreadyUsed)
 				return nil
 			}
 

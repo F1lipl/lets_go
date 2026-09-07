@@ -241,7 +241,10 @@ func (l *LoginByPhoneLogic) LoginByPhone(req *types.LoginByPhoneReq) (resp *Logi
 	Login, err := finalizeLogin(l.svcCtx, l.ctx, user, &req.Device)
 	if err != nil {
 		l.Infow("login error", logx.Field("err", err))
-		code := ecode.LoginCredentialInvalid
+		code := ecode.InternalError
+		if errors.Is(err, errDeviceDisabled) {
+			code = ecode.DeviceDisabled
+		}
 		return &LoginResult{
 			RefreshToken: "",
 			Response: &types.LoginResp{

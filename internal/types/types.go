@@ -3,6 +3,16 @@
 
 package types
 
+type ChangePasswordReq struct {
+	CurrentPassword string `json:"currentPassword"`
+	NewPassword     string `json:"newPassword"`
+}
+
+type ChangePasswordResp struct {
+	ErrorCode int    `json:"errorCode"`
+	Message   string `json:"message"`
+}
+
 type DeviceInfo struct {
 	DeviceID   string `json:"deviceId,omitempty"`
 	DeviceName string `json:"deviceName"`

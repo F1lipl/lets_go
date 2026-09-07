@@ -20,6 +20,7 @@ type (
 			userID string,
 			lastLoginAt time.Time,
 		) error
+		FindOneForUpdate(ctx context.Context, userID string) (*Users, error)
 		withSession(session sqlx.Session) UsersModel
 	}
 
@@ -57,4 +58,14 @@ func (m *customUsersModel) UpdateLastLoginAt(
 	)
 
 	return err
+}
+
+func (m *customUsersModel) FindOneForUpdate(ctx context.Context, userID string) (*Users, error) {
+	query := fmt.Sprintf("select %s from %s where `user_id` = ? limit 1", userSessionsRows, m.table)
+	var resp Users
+	err := m.conn.QueryRowCtx(ctx, &resp, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
 }

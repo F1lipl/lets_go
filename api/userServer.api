@@ -65,6 +65,14 @@ type (
 		Nickname  string `json:"nickname,omitempty"`
 		AvatarURL string `json:"avatarUrl,omitempty"`
 	}
+	ChangePasswordReq {
+		CurrentPassword string `json:"currentPassword"`
+		NewPassword     string `json:"newPassword"`
+	}
+	ChangePasswordResp {
+		ErrorCode int    `json:"errorCode"`
+		Message   string `json:"message"`
+	}
 )
 
 service userServer-api {
@@ -93,5 +101,8 @@ service userServer-api {
 
 	@handler LogoutHandler
 	post /logout returns (LogoutResp)
+
+	@handler ChangePasswordHandler
+	post /password/change (ChangePasswordReq) returns (ChangePasswordResp)
 }
 
