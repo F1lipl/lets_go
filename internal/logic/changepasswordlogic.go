@@ -63,13 +63,13 @@ func (l *ChangePasswordLogic) ChangePassword(req *types.ChangePasswordReq) (resp
 				return errors.New(ecode.AccountDisabled.String())
 			}
 			//验证一下密码
-			if comparePassword(user.PasswordDigest, req.CurrentPassword) {
+			if !comparePassword(user.PasswordDigest, req.CurrentPassword) {
 				return errors.New(ecode.InvalidPassword.String())
 			}
 			now := time.Now()
 			revokeReason := "用户修改密码"
 
-			newPassword, err := generatePasswordDigest(req.CurrentPassword)
+			newPassword, err := generatePasswordDigest(req.NewPassword)
 			if err != nil {
 				return errors.New("generate password digest fail")
 			}

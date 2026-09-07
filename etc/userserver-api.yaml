@@ -32,7 +32,7 @@ DataSource: "root:123456@tcp(127.0.0.1:3308)/user_server?charset=utf8mb4&parseTi
 
 Auth:
   AccessSecret: "Dr2dweO8FVvdhzIHSlmiUwwMAiTu+kErLL15grQe5UeE71U/BlGdt0oM1qu5ht89"
-  AccessExpire: 7200
+  AccessExpire: 900
   RefreshSecret: "A+ar5ZArgYdECzyt+lgKVvhVB19dJxcDsYxabv11hwqehTef2TXec9JBtQVgAFjp"
   RefreshExpire: 604800 # 七天
   CookieSecure: false # 本地HTTP调试；部署HTTPS后改为true

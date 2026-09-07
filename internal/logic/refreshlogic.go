@@ -78,7 +78,6 @@ func (l *RefreshLogic) Refresh(refreshToken string) (*RefreshResult, error) {
 			if err != nil {
 				return fmt.Errorf("find session for update: %w", err)
 			}
-
 			if !parsedRefreshToken.Verify([]byte(userSession.RefreshTokenKey)) {
 				code := ecode.RefreshTokenInvalid
 				l.Infow(
