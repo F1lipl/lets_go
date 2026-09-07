@@ -35,6 +35,13 @@ func (l *ChangePasswordLogic) ChangePassword(req *types.ChangePasswordReq) (resp
 	userId, sessionId, err := getAccessClaims(l.ctx)
 	if err != nil {
 		code := ecode.AccessTokenInvalid
+		l.Infow(
+			"change password rejected",
+			logx.Field("operation", "change_password"),
+			logx.Field("reason", "invalid_access_claims"),
+			logx.Field("errorCode", code.Int()),
+			logx.Field("err", err),
+		)
 		return &types.ChangePasswordResp{
 			ErrorCode: code.Int(),
 			Message:   code.Message(),
@@ -80,12 +87,27 @@ func (l *ChangePasswordLogic) ChangePassword(req *types.ChangePasswordReq) (resp
 		})
 	if err != nil {
 		code := ecode.PasswordChangeFailed
-		l.Infow("change password error", logx.Field("err", err))
+		l.Errorw(
+			"change password transaction failed",
+			logx.Field("operation", "change_password"),
+			logx.Field("stage", "transaction"),
+			logx.Field("userId", userId),
+			logx.Field("sessionId", sessionId),
+			logx.Field("errorCode", code.Int()),
+			logx.Field("err", err),
+		)
 		return &types.ChangePasswordResp{
 			ErrorCode: code.Int(),
 			Message:   code.Message(),
 		}, nil
 	}
+	l.Infow(
+		"password changed",
+		logx.Field("operation", "change_password"),
+		logx.Field("result", "success"),
+		logx.Field("userId", userId),
+		logx.Field("sessionId", sessionId),
+	)
 	return &types.ChangePasswordResp{
 		ErrorCode: ecode.Success.Int(),
 		Message:   ecode.Success.Message(),

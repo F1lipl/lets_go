@@ -53,8 +53,12 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 
 	default:
 		code := ecode.InvalidLoginIdentifierType
-		l.Infow("使用了错误的登陆方式",
-			logx.Field("identifier", req.Identifier),
+		l.Infow(
+			"login rejected",
+			logx.Field("operation", "login_by_password"),
+			logx.Field("identifierType", req.IdentifierType),
+			logx.Field("reason", "invalid_identifier_type"),
+			logx.Field("errorCode", code.Int()),
 		)
 		return &LoginResult{
 			RefreshToken: "",
@@ -68,9 +72,13 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 	// 用户不存在
 	if errors.Is(err, model.ErrNotFound) {
 		code := ecode.LoginCredentialInvalid
-		l.Infow("登陆的用户不存在",
-			logx.Field("identifier", req.Identifier),
-			logx.Field("username", req.Identifier))
+		l.Infow(
+			"login rejected",
+			logx.Field("operation", "login_by_password"),
+			logx.Field("identifierType", req.IdentifierType),
+			logx.Field("reason", "credential_mismatch"),
+			logx.Field("errorCode", code.Int()),
+		)
 		return &LoginResult{
 			RefreshToken: "",
 			Response: &types.LoginResp{
@@ -82,14 +90,15 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 
 	// 查询出现其他问题
 	if err != nil {
-		l.Errorf(
-			"查询数据库时出现错误",
-			logx.Field("identifier", req.Identifier),
-			logx.Field("identifierType", req.IdentifierType),
-			logx.Field("error", err.Error()),
-		)
-
 		code := ecode.DatabaseError
+		l.Errorw(
+			"query user failed",
+			logx.Field("operation", "login_by_password"),
+			logx.Field("stage", "query_user"),
+			logx.Field("identifierType", req.IdentifierType),
+			logx.Field("errorCode", code.Int()),
+			logx.Field("err", err),
+		)
 
 		return &LoginResult{
 			RefreshToken: "",
@@ -103,9 +112,13 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 	// 手机号登录和用户名登录都必须执行密码比对
 	if !comparePassword(user.PasswordDigest, req.Password) {
 		code := ecode.LoginCredentialInvalid
-		l.Infow("密码错误",
-			logx.Field("identifier", req.Identifier),
-			logx.Field("username", req.Identifier))
+		l.Infow(
+			"login rejected",
+			logx.Field("operation", "login_by_password"),
+			logx.Field("identifierType", req.IdentifierType),
+			logx.Field("reason", "credential_mismatch"),
+			logx.Field("errorCode", code.Int()),
+		)
 		return &LoginResult{
 			RefreshToken: "",
 			Response: &types.LoginResp{
@@ -119,6 +132,14 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 	switch user.AccountStatus {
 	case 0, 3:
 		code := ecode.AccountDisabled
+		l.Infow(
+			"login rejected",
+			logx.Field("operation", "login_by_password"),
+			logx.Field("userId", user.UserId),
+			logx.Field("accountStatus", user.AccountStatus),
+			logx.Field("reason", "account_disabled"),
+			logx.Field("errorCode", code.Int()),
+		)
 
 		return &LoginResult{
 			RefreshToken: "",
@@ -130,6 +151,14 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 
 	case 2:
 		code := ecode.AccountPending
+		l.Infow(
+			"login rejected",
+			logx.Field("operation", "login_by_password"),
+			logx.Field("userId", user.UserId),
+			logx.Field("accountStatus", user.AccountStatus),
+			logx.Field("reason", "account_pending"),
+			logx.Field("errorCode", code.Int()),
+		)
 
 		return &LoginResult{
 			RefreshToken: "",
@@ -144,6 +173,13 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 
 	default:
 		code := ecode.AccountDisabled
+		l.Errorw(
+			"unexpected account status",
+			logx.Field("operation", "login_by_password"),
+			logx.Field("userId", user.UserId),
+			logx.Field("accountStatus", user.AccountStatus),
+			logx.Field("errorCode", code.Int()),
+		)
 
 		return &LoginResult{
 			RefreshToken: "",
@@ -161,8 +197,16 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 	}
 	err = validateDeviceInfo(&req.Device)
 	if err != nil {
-		l.Infow("device info is validate failed", logx.Field("err", err), logx.Field("userId", user.UserId), logx.Field("deviceInfo", req.Device))
 		code := ecode.InvalidDeviceInfo
+		l.Infow(
+			"device info rejected",
+			logx.Field("operation", "login_by_password"),
+			logx.Field("stage", "validate_device"),
+			logx.Field("userId", user.UserId),
+			logx.Field("reason", "invalid_device_info"),
+			logx.Field("detail", err.Error()),
+			logx.Field("errorCode", code.Int()),
+		)
 		return &LoginResult{
 			RefreshToken: "",
 			Response: &types.LoginResp{
@@ -174,10 +218,27 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 	}
 	Login, err := finalizeLogin(l.svcCtx, l.ctx, user, &req.Device)
 	if err != nil {
-		l.Infow("login error", logx.Field("err", err))
 		code := ecode.InternalError
 		if errors.Is(err, errDeviceDisabled) {
 			code = ecode.DeviceDisabled
+			l.Infow(
+				"login rejected",
+				logx.Field("operation", "login_by_password"),
+				logx.Field("userId", user.UserId),
+				logx.Field("deviceId", *deviceid),
+				logx.Field("reason", "device_disabled"),
+				logx.Field("errorCode", code.Int()),
+			)
+		} else {
+			l.Errorw(
+				"finalize login failed",
+				logx.Field("operation", "login_by_password"),
+				logx.Field("stage", "finalize_login"),
+				logx.Field("userId", user.UserId),
+				logx.Field("deviceId", *deviceid),
+				logx.Field("errorCode", code.Int()),
+				logx.Field("err", err),
+			)
 		}
 		return &LoginResult{
 			RefreshToken: "",
@@ -188,5 +249,12 @@ func (l *LoginByPasswordLogic) LoginByPassword(
 			},
 		}, nil
 	}
+	l.Infow(
+		"login succeeded",
+		logx.Field("operation", "login_by_password"),
+		logx.Field("result", "success"),
+		logx.Field("userId", user.UserId),
+		logx.Field("deviceId", Login.Response.DeviceID),
+	)
 	return Login, nil
 }

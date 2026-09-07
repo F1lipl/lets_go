@@ -35,12 +35,16 @@ func NewLogoutLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LogoutLogi
 func (l *LogoutLogic) Logout() (*types.LogoutResp, error) {
 	userID, sessionID, err := getAccessClaims(l.ctx)
 	if err != nil {
+		code := ecode.AccessTokenInvalid
 		l.Infow(
-			"access token claims invalid",
+			"logout rejected",
+			logx.Field("operation", "logout"),
+			logx.Field("reason", "invalid_access_claims"),
+			logx.Field("errorCode", code.Int()),
 			logx.Field("err", err),
 		)
 
-		return logoutResponse(ecode.AccessTokenInvalid), nil
+		return logoutResponse(code), nil
 	}
 
 	var resultCode = ecode.Success
@@ -105,11 +109,35 @@ func (l *LogoutLogic) Logout() (*types.LogoutResp, error) {
 	if err != nil {
 		l.Errorw(
 			"logout transaction failed",
-			logx.Field("err", err),
+			logx.Field("operation", "logout"),
+			logx.Field("stage", "transaction"),
+			logx.Field("userId", userID),
 			logx.Field("sessionId", sessionID),
+			logx.Field("errorCode", ecode.DatabaseError.Int()),
+			logx.Field("err", err),
 		)
 
 		return logoutResponse(ecode.DatabaseError), nil
+	}
+
+	if resultCode == ecode.Success {
+		l.Infow(
+			"logout completed",
+			logx.Field("operation", "logout"),
+			logx.Field("result", "success"),
+			logx.Field("userId", userID),
+			logx.Field("sessionId", sessionID),
+		)
+	} else {
+		l.Infow(
+			"logout rejected",
+			logx.Field("operation", "logout"),
+			logx.Field("result", "rejected"),
+			logx.Field("userId", userID),
+			logx.Field("sessionId", sessionID),
+			logx.Field("reason", "session_not_found"),
+			logx.Field("errorCode", resultCode.Int()),
+		)
 	}
 
 	return logoutResponse(resultCode), nil

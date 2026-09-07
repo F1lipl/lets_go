@@ -41,8 +41,15 @@ func NewRefreshLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RefreshLo
 func (l *RefreshLogic) Refresh(refreshToken string) (*RefreshResult, error) {
 	parsedRefreshToken, err := decodeRefreshToken(refreshToken)
 	if err != nil {
-		l.Infow("invalid refresh token", logx.Field("err", err))
-		return newRefreshResult(ecode.RefreshTokenInvalid), nil
+		code := ecode.RefreshTokenInvalid
+		l.Infow(
+			"refresh rejected",
+			logx.Field("operation", "refresh_session"),
+			logx.Field("reason", "invalid_refresh_token"),
+			logx.Field("errorCode", code.Int()),
+			logx.Field("err", err),
+		)
+		return newRefreshResult(code), nil
 	}
 
 	sessionID := parsedRefreshToken.Payload.SessionID
@@ -57,7 +64,15 @@ func (l *RefreshLogic) Refresh(refreshToken string) (*RefreshResult, error) {
 
 			userSession, err := sessionModel.FindOneForUpdate(ctx, sessionID)
 			if errors.Is(err, model.ErrNotFound) {
-				result = newRefreshResult(ecode.SessionNotFound)
+				code := ecode.SessionNotFound
+				l.Infow(
+					"refresh rejected",
+					logx.Field("operation", "refresh_session"),
+					logx.Field("sessionId", sessionID),
+					logx.Field("reason", "session_not_found"),
+					logx.Field("errorCode", code.Int()),
+				)
+				result = newRefreshResult(code)
 				return nil
 			}
 			if err != nil {
@@ -65,32 +80,69 @@ func (l *RefreshLogic) Refresh(refreshToken string) (*RefreshResult, error) {
 			}
 
 			if !parsedRefreshToken.Verify([]byte(userSession.RefreshTokenKey)) {
-				l.Infow("refresh token does not match session", logx.Field("sessionId", sessionID))
-				result = newRefreshResult(ecode.RefreshTokenInvalid)
+				code := ecode.RefreshTokenInvalid
+				l.Infow(
+					"refresh rejected",
+					logx.Field("operation", "refresh_session"),
+					logx.Field("sessionId", sessionID),
+					logx.Field("reason", "refresh_token_mismatch"),
+					logx.Field("errorCode", code.Int()),
+				)
+				result = newRefreshResult(code)
 				return nil
 			}
 			if parsedRefreshToken.Payload.Counter != userSession.RefreshTokenCounter {
-				l.Infow("refresh token has already been used", logx.Field("sessionId", sessionID))
-				result = newRefreshResult(ecode.RefreshTokenAlreadyUsed)
+				code := ecode.RefreshTokenAlreadyUsed
+				l.Infow(
+					"refresh rejected",
+					logx.Field("operation", "refresh_session"),
+					logx.Field("sessionId", sessionID),
+					logx.Field("reason", "refresh_token_already_used"),
+					logx.Field("errorCode", code.Int()),
+				)
+				result = newRefreshResult(code)
 				return nil
 			}
 
 			if userSession.Status != 1 {
-				l.Infow("session is inactive", logx.Field("sessionId", sessionID))
-				result = newRefreshResult(ecode.SessionInactive)
+				code := ecode.SessionInactive
+				l.Infow(
+					"refresh rejected",
+					logx.Field("operation", "refresh_session"),
+					logx.Field("sessionId", sessionID),
+					logx.Field("reason", "session_inactive"),
+					logx.Field("errorCode", code.Int()),
+				)
+				result = newRefreshResult(code)
 				return nil
 			}
 
 			now := time.Now()
 			if !now.Before(userSession.NotAfter) {
-				l.Infow("session expired", logx.Field("sessionId", sessionID))
-				result = newRefreshResult(ecode.SessionExpired)
+				code := ecode.SessionExpired
+				l.Infow(
+					"refresh rejected",
+					logx.Field("operation", "refresh_session"),
+					logx.Field("sessionId", sessionID),
+					logx.Field("reason", "session_expired"),
+					logx.Field("errorCode", code.Int()),
+				)
+				result = newRefreshResult(code)
 				return nil
 			}
 
 			user, err := userModel.FindOne(ctx, userSession.UserId)
 			if errors.Is(err, model.ErrNotFound) {
-				result = newRefreshResult(ecode.RefreshTokenInvalid)
+				code := ecode.RefreshTokenInvalid
+				l.Errorw(
+					"session user not found",
+					logx.Field("operation", "refresh_session"),
+					logx.Field("stage", "query_user"),
+					logx.Field("userId", userSession.UserId),
+					logx.Field("sessionId", sessionID),
+					logx.Field("errorCode", code.Int()),
+				)
+				result = newRefreshResult(code)
 				return nil
 			}
 			if err != nil {
@@ -101,10 +153,42 @@ func (l *RefreshLogic) Refresh(refreshToken string) (*RefreshResult, error) {
 			case 1:
 				// 正常状态，继续刷新。
 			case 2:
-				result = newRefreshResult(ecode.AccountPending)
+				code := ecode.AccountPending
+				l.Infow(
+					"refresh rejected",
+					logx.Field("operation", "refresh_session"),
+					logx.Field("userId", user.UserId),
+					logx.Field("sessionId", sessionID),
+					logx.Field("accountStatus", user.AccountStatus),
+					logx.Field("reason", "account_pending"),
+					logx.Field("errorCode", code.Int()),
+				)
+				result = newRefreshResult(code)
+				return nil
+			case 0, 3:
+				code := ecode.AccountDisabled
+				l.Infow(
+					"refresh rejected",
+					logx.Field("operation", "refresh_session"),
+					logx.Field("userId", user.UserId),
+					logx.Field("sessionId", sessionID),
+					logx.Field("accountStatus", user.AccountStatus),
+					logx.Field("reason", "account_disabled"),
+					logx.Field("errorCode", code.Int()),
+				)
+				result = newRefreshResult(code)
 				return nil
 			default:
-				result = newRefreshResult(ecode.AccountDisabled)
+				code := ecode.AccountDisabled
+				l.Errorw(
+					"unexpected account status",
+					logx.Field("operation", "refresh_session"),
+					logx.Field("userId", user.UserId),
+					logx.Field("sessionId", sessionID),
+					logx.Field("accountStatus", user.AccountStatus),
+					logx.Field("errorCode", code.Int()),
+				)
+				result = newRefreshResult(code)
 				return nil
 			}
 
@@ -154,12 +238,28 @@ func (l *RefreshLogic) Refresh(refreshToken string) (*RefreshResult, error) {
 		},
 	)
 	if err != nil {
-		l.Errorw("refresh transaction failed", logx.Field("err", err), logx.Field("sessionId", sessionID))
+		l.Errorw(
+			"refresh transaction failed",
+			logx.Field("operation", "refresh_session"),
+			logx.Field("stage", "transaction"),
+			logx.Field("sessionId", sessionID),
+			logx.Field("errorCode", ecode.InternalError.Int()),
+			logx.Field("err", err),
+		)
 		return nil, err
 	}
 
 	if result == nil {
-		return nil, errors.New("refresh result is nil")
+		err := errors.New("refresh result is nil")
+		l.Errorw(
+			"refresh result missing",
+			logx.Field("operation", "refresh_session"),
+			logx.Field("stage", "build_response"),
+			logx.Field("sessionId", sessionID),
+			logx.Field("errorCode", ecode.InternalError.Int()),
+			logx.Field("err", err),
+		)
+		return nil, err
 	}
 	return result, nil
 }

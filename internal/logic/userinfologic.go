@@ -34,12 +34,15 @@ func (l *UserInfoLogic) UserInfo() (
 ) {
 	userID, _, err := getAccessClaims(l.ctx)
 	if err != nil {
+		code := ecode.AccessTokenInvalid
 		l.Infow(
-			"access token claims invalid",
+			"get user info rejected",
+			logx.Field("operation", "get_user_info"),
+			logx.Field("reason", "invalid_access_claims"),
+			logx.Field("errorCode", code.Int()),
 			logx.Field("err", err),
 		)
 
-		code := ecode.AccessTokenInvalid
 		return &types.UserInfoResp{
 			ErrorCode: code.Int(),
 			Message:   code.Message(),
@@ -52,12 +55,15 @@ func (l *UserInfoLogic) UserInfo() (
 	)
 
 	if errors.Is(err, model.ErrNotFound) {
-		l.Infow(
+		code := ecode.UserNotFound
+		l.Errorw(
 			"user not found",
+			logx.Field("operation", "get_user_info"),
+			logx.Field("stage", "query_user"),
 			logx.Field("userId", userID),
+			logx.Field("errorCode", code.Int()),
 		)
 
-		code := ecode.UserNotFound
 		return &types.UserInfoResp{
 			ErrorCode: code.Int(),
 			Message:   code.Message(),
@@ -65,13 +71,16 @@ func (l *UserInfoLogic) UserInfo() (
 	}
 
 	if err != nil {
+		code := ecode.DatabaseError
 		l.Errorw(
 			"search user failed",
+			logx.Field("operation", "get_user_info"),
+			logx.Field("stage", "query_user"),
 			logx.Field("userId", userID),
+			logx.Field("errorCode", code.Int()),
 			logx.Field("err", err),
 		)
 
-		code := ecode.DatabaseError
 		return &types.UserInfoResp{
 			ErrorCode: code.Int(),
 			Message:   code.Message(),
@@ -83,12 +92,41 @@ func (l *UserInfoLogic) UserInfo() (
 		// 正常状态，继续返回资料。
 	case 2:
 		code := ecode.AccountPending
+		l.Infow(
+			"get user info rejected",
+			logx.Field("operation", "get_user_info"),
+			logx.Field("userId", user.UserId),
+			logx.Field("accountStatus", user.AccountStatus),
+			logx.Field("reason", "account_pending"),
+			logx.Field("errorCode", code.Int()),
+		)
+		return &types.UserInfoResp{
+			ErrorCode: code.Int(),
+			Message:   code.Message(),
+		}, nil
+	case 0, 3:
+		code := ecode.AccountDisabled
+		l.Infow(
+			"get user info rejected",
+			logx.Field("operation", "get_user_info"),
+			logx.Field("userId", user.UserId),
+			logx.Field("accountStatus", user.AccountStatus),
+			logx.Field("reason", "account_disabled"),
+			logx.Field("errorCode", code.Int()),
+		)
 		return &types.UserInfoResp{
 			ErrorCode: code.Int(),
 			Message:   code.Message(),
 		}, nil
 	default:
 		code := ecode.AccountDisabled
+		l.Errorw(
+			"unexpected account status",
+			logx.Field("operation", "get_user_info"),
+			logx.Field("userId", user.UserId),
+			logx.Field("accountStatus", user.AccountStatus),
+			logx.Field("errorCode", code.Int()),
+		)
 		return &types.UserInfoResp{
 			ErrorCode: code.Int(),
 			Message:   code.Message(),

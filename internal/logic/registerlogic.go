@@ -60,13 +60,14 @@ func (l *RegisterLogic) Register(
 
 	// 不是“没有查询到”，说明数据库操作出现问题
 	if !errors.Is(err, model.ErrNotFound) {
-		l.Errorf(
-			"query user failed, phoneNumber=%s, err=%v",
-			req.PhoneNumber,
-			err,
-		)
-
 		code := ecode.DatabaseError
+		l.Errorw(
+			"query user failed",
+			logx.Field("operation", "register"),
+			logx.Field("stage", "check_phone_number"),
+			logx.Field("errorCode", code.Int()),
+			logx.Field("err", err),
+		)
 
 		return &types.RegisterResp{
 			ErrorCode: code.Int(),
@@ -88,13 +89,15 @@ func (l *RegisterLogic) Register(
 
 	_, err = l.svcCtx.UserModel.Insert(l.ctx, user)
 	if err != nil {
-		l.Errorf(
-			"insert user failed, phoneNumber=%s, err=%v",
-			req.PhoneNumber,
-			err,
-		)
-
 		code := ecode.DatabaseError
+		l.Errorw(
+			"insert user failed",
+			logx.Field("operation", "register"),
+			logx.Field("stage", "insert_user"),
+			logx.Field("userId", userID),
+			logx.Field("errorCode", code.Int()),
+			logx.Field("err", err),
+		)
 
 		return &types.RegisterResp{
 			ErrorCode: code.Int(),
@@ -103,6 +106,12 @@ func (l *RegisterLogic) Register(
 	}
 
 	code := ecode.Success
+	l.Infow(
+		"user registered",
+		logx.Field("operation", "register"),
+		logx.Field("result", "success"),
+		logx.Field("userId", userID),
+	)
 
 	return &types.RegisterResp{
 		ErrorCode: code.Int(),
