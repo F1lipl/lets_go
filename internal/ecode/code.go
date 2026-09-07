@@ -52,9 +52,14 @@ const (
 	SessionExpired       Code = 600003
 	SessionLimitExceeded Code = 600004
 
-	CurrentPasswordInvalid   Code = 700001
-	NewPasswordSameAsCurrent Code = 700002
-	PasswordChangeFailed     Code = 700003
+	CurrentPasswordInvalid     Code = 700001
+	NewPasswordSameAsCurrent   Code = 700002
+	PasswordChangeFailed       Code = 700003
+	PasswordResetTicketInvalid Code = 700004
+	PasswordResetTicketExpired Code = 700005
+	PasswordResetTicketUsed    Code = 700006
+	PasswordResetTooFrequent   Code = 700007
+	PasswordResetFailed        Code = 700008
 
 	InternalError Code = 900001
 	DatabaseError Code = 900002
@@ -93,6 +98,11 @@ var messages = map[Code]string{
 	CurrentPasswordInvalid:      "当前密码不正确",
 	NewPasswordSameAsCurrent:    "新密码不能与当前密码相同",
 	PasswordChangeFailed:        "修改密码失败，请稍后重试",
+	PasswordResetTicketInvalid:  "密码重置凭据无效",
+	PasswordResetTicketExpired:  "密码重置凭据已过期",
+	PasswordResetTicketUsed:     "密码重置凭据已被使用",
+	PasswordResetTooFrequent:    "密码重置操作过于频繁，请稍后重试",
+	PasswordResetFailed:         "重置密码失败，请稍后重试",
 	InternalError:               "服务暂时不可用",
 	DatabaseError:               "数据处理失败",
 	CacheError:                  "临时数据处理失败",

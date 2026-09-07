@@ -61,11 +61,19 @@ func (m *customUsersModel) UpdateLastLoginAt(
 }
 
 func (m *customUsersModel) FindOneForUpdate(ctx context.Context, userID string) (*Users, error) {
-	query := fmt.Sprintf("select %s from %s where `user_id` = ? limit 1", userSessionsRows, m.table)
+	query := fmt.Sprintf(
+		"select %s from %s where `user_id` = ? limit 1 for update",
+		usersRows,
+		m.table,
+	)
+
 	var resp Users
-	err := m.conn.QueryRowCtx(ctx, &resp, query, userID)
-	if err != nil {
+	if err := m.conn.QueryRowCtx(ctx, &resp, query, userID); err != nil {
+		if err == sqlx.ErrNotFound {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
+
 	return &resp, nil
 }

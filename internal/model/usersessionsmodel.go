@@ -23,6 +23,7 @@ type (
 			revokedAt time.Time,
 			reason string,
 		) error
+		RevokeAllByUserID(ctx context.Context, userID string, revokeAt time.Time, reason string) error
 		withSession(session sqlx.Session) UserSessionsModel
 	}
 
@@ -70,15 +71,16 @@ func (m *customUserSessionsModel) RevokeOtherByUserID(
 	revokedAt time.Time,
 	reason string,
 ) error {
-	query := fmt.Sprintf(
-		`
-		update %s set status=0,
-					  revoked_at=?,
-		              reason_reason=?,
-		where user_id=? 
-		AND id <> ?
-		AND status=1	              
+	query := fmt.Sprintf(`
+		update %s
+		set status = 0,
+			revoked_at = ?,
+			revoke_reason = ?
+		where user_id = ?
+			and id <> ?
+			and status = 1
 	`, m.table)
+
 	_, err := m.conn.ExecCtx(
 		ctx,
 		query,
@@ -87,8 +89,30 @@ func (m *customUserSessionsModel) RevokeOtherByUserID(
 		userID,
 		currentSessionID,
 	)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
+}
+
+func (m *customUserSessionsModel) RevokeAllByUserID(
+	ctx context.Context,
+	userID string,
+	revokedAt time.Time,
+	reason string,
+) error {
+	query := fmt.Sprintf(`
+		update %s
+		set status = 0,
+			revoked_at = ?,
+			revoke_reason = ?
+		where user_id = ?
+			and status = 1
+	`, m.table)
+
+	_, err := m.conn.ExecCtx(
+		ctx,
+		query,
+		revokedAt,
+		reason,
+		userID,
+	)
+	return err
 }

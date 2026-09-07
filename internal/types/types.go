@@ -22,6 +22,7 @@ type DeviceInfo struct {
 
 type GetVerificationReq struct {
 	PhoneNumber string `json:"phoneNumber"`
+	Purpose     string `json:"purpose"`
 }
 
 type GetVerificationResp struct {
@@ -70,6 +71,16 @@ type RegisterResp struct {
 	ErrorCode int    `json:"errorCode"`
 	Message   string `json:"message"`
 	UserID    string `json:"userId,omitempty"`
+}
+
+type ResetPasswordReq struct {
+	ResetTicket string `json:"resetTicket"`
+	NewPassword string `json:"newPassword"`
+}
+
+type ResetPasswordResp struct {
+	ErrorCode int    `json:"errorCode"`
+	Message   string `json:"message"`
 }
 
 type UserInfoResp struct {

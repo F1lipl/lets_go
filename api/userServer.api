@@ -20,10 +20,21 @@ type (
 	}
 	GetVerificationReq {
 		PhoneNumber string `json:"phoneNumber"`
+		Purpose     string `json:"purpose"`
 	}
 	GetVerificationResp {
 		ErrorCode int    `json:"errorCode"`
 		Message   string `json:"message"`
+	}
+	VerifyResetCodeReq {
+		PhoneNumber      string `json:"phoneNumber"`
+		VerificationCode string `json:"verificationCode"`
+	}
+	VerifyResetCodeResp {
+		ErrorCode  int    `json:"errorCode"`
+		Message    string `json:"message"`
+		ResetTicket string `json:"resetTicket,omitempty"`
+		ExpiresIn   int64  `json:"expiresIn,omitempty"`
 	}
 	DeviceInfo {
 		DeviceID   string `json:"deviceId,omitempty"`
@@ -73,6 +84,14 @@ type (
 		ErrorCode int    `json:"errorCode"`
 		Message   string `json:"message"`
 	}
+	ResetPasswordReq {
+		ResetTicket string `json:"resetTicket"`
+		NewPassword string `json:"newPassword"`
+	}
+	ResetPasswordResp {
+		ErrorCode int    `json:"errorCode"`
+		Message   string `json:"message"`
+	}
 )
 
 service userServer-api {
@@ -90,6 +109,12 @@ service userServer-api {
 
 	@handler RefreshHandler
 	post /refresh returns (RefreshResp)
+
+	@handler VerifyResetCodeHandler
+	post /password/reset/verify (VerifyResetCodeReq) returns (VerifyResetCodeResp)
+
+	@handler ResetPasswordHandler
+	post /password/reset (ResetPasswordReq) returns (ResetPasswordResp)
 }
 
 @server (
@@ -105,4 +130,3 @@ service userServer-api {
 	@handler ChangePasswordHandler
 	post /password/change (ChangePasswordReq) returns (ChangePasswordResp)
 }
-
