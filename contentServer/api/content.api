@@ -1,0 +1,346 @@
+syntax = "v1"
+
+info (
+	title:   "Content Service"
+	desc:    "Content service API based on Post and PostDraft aggregates"
+	author:  "contentServer"
+	version: "2.0"
+)
+
+type HealthResponse {
+	Status string `json:"status"`
+}
+
+type CoverInput {
+	AssetId   string  `json:"assetId,optional"`
+	FocusX    float64 `json:"focusX,optional"`
+	FocusY    float64 `json:"focusY,optional"`
+	CropStyle string  `json:"cropStyle,optional"`
+}
+
+type CoverView {
+	AssetId      string  `json:"assetId,optional"`
+	FocusX       float64 `json:"focusX,optional"`
+	FocusY       float64 `json:"focusY,optional"`
+	CropStyle    string  `json:"cropStyle,optional"`
+	Width        int64   `json:"width,optional"`
+	Height       int64   `json:"height,optional"`
+	ThumbnailUrl string  `json:"thumbnailUrl,optional"`
+	LargeUrl     string  `json:"largeUrl,optional"`
+}
+
+type RouteBinding {
+	TargetType string `json:"targetType"`
+	TargetKey  string `json:"targetKey"`
+}
+
+type ContentBlock {
+	BlockId       string         `json:"blockId"`
+	ParentBlockId string         `json:"parentBlockId,optional"`
+	BlockType     string         `json:"blockType"`
+	SortOrder     int64          `json:"sortOrder"`
+	Title         string         `json:"title,optional"`
+	Text          string         `json:"text,optional"`
+	AssetIds      []string       `json:"assetIds,optional"`
+	PlaceId       string         `json:"placeId,optional"`
+	Bindings      []RouteBinding `json:"bindings,optional"`
+}
+
+type PostDocument {
+	SchemaVersion uint32         `json:"schemaVersion"`
+	Blocks        []ContentBlock `json:"blocks"`
+}
+
+type MediaAssetView {
+	AssetId      string `json:"assetId"`
+	Width        int64  `json:"width"`
+	Height       int64  `json:"height"`
+	ThumbnailUrl string `json:"thumbnailUrl"`
+	LargeUrl     string `json:"largeUrl"`
+}
+
+type PostTag {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type RouteDraftView {
+	RouteDraftId string `json:"routeDraftId,optional"`
+	RouteVersion uint64 `json:"routeVersion,optional"`
+}
+
+type RouteSnapshotSummary {
+	RouteSnapshotId string `json:"routeSnapshotId,optional"`
+	SnapshotVersion uint64 `json:"snapshotVersion,optional"`
+	DayCount        int64  `json:"dayCount,optional"`
+	NodeCount       int64  `json:"nodeCount,optional"`
+	PreviewAssetId  string `json:"previewAssetId,optional"`
+	PreviewUrl      string `json:"previewUrl,optional"`
+}
+
+type CreatePostRequest {
+	Visibility       string       `json:"visibility"`
+	Title            string       `json:"title,optional"`
+	Summary          string       `json:"summary,optional"`
+	Cover            CoverInput   `json:"cover,optional"`
+	PresentationMode string       `json:"presentationMode"`
+	Document         PostDocument `json:"document"`
+	TagIds           []string     `json:"tagIds,optional"`
+}
+
+type CreatePostResponse {
+	PostId       string `json:"postId"`
+	DraftId      string `json:"draftId"`
+	Status       string `json:"status"`
+	PostVersion  uint64 `json:"postVersion"`
+	DraftVersion uint64 `json:"draftVersion"`
+	CreatedAt    string `json:"createdAt"`
+}
+
+type GetPostDraftRequest {
+	PostId string `path:"postId"`
+}
+
+type GetPostDraftResponse {
+	PostId           string           `json:"postId"`
+	DraftId          string           `json:"draftId"`
+	Status           string           `json:"status"`
+	Visibility       string           `json:"visibility"`
+	Title            string           `json:"title"`
+	Summary          string           `json:"summary"`
+	HasCover         bool             `json:"hasCover"`
+	Cover            CoverView        `json:"cover"`
+	PresentationMode string           `json:"presentationMode"`
+	Document         PostDocument     `json:"document"`
+	MediaAssets      []MediaAssetView `json:"mediaAssets"`
+	Tags             []PostTag        `json:"tags"`
+	HasRoute         bool             `json:"hasRoute"`
+	Route            RouteDraftView   `json:"route"`
+	PostVersion      uint64           `json:"postVersion"`
+	DraftVersion     uint64           `json:"draftVersion"`
+	UpdatedAt        string           `json:"updatedAt"`
+}
+
+type SavePostDraftRequest {
+	PostId               string       `path:"postId"`
+	ExpectedDraftVersion uint64       `json:"expectedDraftVersion"`
+	Title                string       `json:"title,optional"`
+	Summary              string       `json:"summary,optional"`
+	Cover                CoverInput   `json:"cover,optional"`
+	PresentationMode     string       `json:"presentationMode"`
+	Document             PostDocument `json:"document"`
+	TagIds               []string     `json:"tagIds,optional"`
+}
+
+type SavePostDraftResponse {
+	PostId       string `json:"postId"`
+	DraftId      string `json:"draftId"`
+	DraftVersion uint64 `json:"draftVersion"`
+	UpdatedAt    string `json:"updatedAt"`
+}
+
+type CreatePostRouteDraftRequest {
+	PostId               string `path:"postId"`
+	ExpectedDraftVersion uint64 `json:"expectedDraftVersion"`
+	RequestId            string `json:"requestId"`
+}
+
+type CreatePostRouteDraftResponse {
+	PostId       string `json:"postId"`
+	RouteDraftId string `json:"routeDraftId"`
+	RouteVersion uint64 `json:"routeVersion"`
+	DraftVersion uint64 `json:"draftVersion"`
+	CreatedAt    string `json:"createdAt"`
+}
+
+type DetachPostRouteDraftRequest {
+	PostId               string `path:"postId"`
+	ExpectedDraftVersion uint64 `form:"expectedDraftVersion"`
+}
+
+type DetachPostRouteDraftResponse {
+	PostId       string `json:"postId"`
+	DraftVersion uint64 `json:"draftVersion"`
+	UpdatedAt    string `json:"updatedAt"`
+}
+
+type PublishPostRequest {
+	PostId               string `path:"postId"`
+	ExpectedPostVersion  uint64 `json:"expectedPostVersion"`
+	ExpectedDraftVersion uint64 `json:"expectedDraftVersion"`
+	ExpectedRouteVersion uint64 `json:"expectedRouteVersion,optional"`
+	PublishRequestId     string `json:"publishRequestId"`
+}
+
+type PublishPostResponse {
+	PostId          string `json:"postId"`
+	RevisionId      string `json:"revisionId"`
+	RevisionNumber  uint64 `json:"revisionNumber"`
+	RouteSnapshotId string `json:"routeSnapshotId,optional"`
+	Status          string `json:"status"`
+	PostVersion     uint64 `json:"postVersion"`
+	PublishedAt     string `json:"publishedAt"`
+}
+
+type ChangePostVisibilityRequest {
+	PostId              string `path:"postId"`
+	Visibility          string `json:"visibility"`
+	ExpectedPostVersion uint64 `json:"expectedPostVersion"`
+}
+
+type ChangePostVisibilityResponse {
+	PostId      string `json:"postId"`
+	Visibility  string `json:"visibility"`
+	PostVersion uint64 `json:"postVersion"`
+	UpdatedAt   string `json:"updatedAt"`
+}
+
+type DeletePostRequest {
+	PostId              string `path:"postId"`
+	ExpectedPostVersion uint64 `form:"expectedPostVersion"`
+}
+
+type DeletePostResponse {
+	PostId      string `json:"postId"`
+	Status      string `json:"status"`
+	PostVersion uint64 `json:"postVersion"`
+	DeletedAt   string `json:"deletedAt"`
+}
+
+type GetPostRequest {
+	PostId string `path:"postId"`
+}
+
+type GetPostResponse {
+	PostId           string               `json:"postId"`
+	AuthorId         string               `json:"authorId"`
+	Status           string               `json:"status"`
+	Visibility       string               `json:"visibility"`
+	RevisionId       string               `json:"revisionId"`
+	RevisionNumber   uint64               `json:"revisionNumber"`
+	Title            string               `json:"title"`
+	Summary          string               `json:"summary"`
+	HasCover         bool                 `json:"hasCover"`
+	Cover            CoverView            `json:"cover"`
+	PresentationMode string               `json:"presentationMode"`
+	Document         PostDocument         `json:"document"`
+	MediaAssets      []MediaAssetView     `json:"mediaAssets"`
+	Tags             []PostTag            `json:"tags"`
+	HasRoute         bool                 `json:"hasRoute"`
+	Route            RouteSnapshotSummary `json:"route"`
+	LikeCount        uint64               `json:"likeCount"`
+	FavoriteCount    uint64               `json:"favoriteCount"`
+	CommentCount     uint64               `json:"commentCount"`
+	PostVersion      uint64               `json:"postVersion"`
+	PublishedAt      string               `json:"publishedAt"`
+}
+
+type ListPostsRequest {
+	Cursor  string `form:"cursor,optional"`
+	Limit   int64  `form:"limit,default=20,range=[1:50]"`
+	TagId   string `form:"tagId,optional"`
+	PlaceId string `form:"placeId,optional"`
+}
+
+type PostListItem {
+	PostId           string               `json:"postId"`
+	AuthorId         string               `json:"authorId"`
+	Title            string               `json:"title"`
+	Summary          string               `json:"summary"`
+	HasCover         bool                 `json:"hasCover"`
+	Cover            CoverView            `json:"cover"`
+	PresentationMode string               `json:"presentationMode"`
+	Tags             []PostTag            `json:"tags"`
+	HasRoute         bool                 `json:"hasRoute"`
+	Route            RouteSnapshotSummary `json:"route"`
+	LikeCount        uint64               `json:"likeCount"`
+	FavoriteCount    uint64               `json:"favoriteCount"`
+	CommentCount     uint64               `json:"commentCount"`
+	PublishedAt      string               `json:"publishedAt"`
+}
+
+type ListPostsResponse {
+	Items      []PostListItem `json:"items"`
+	NextCursor string         `json:"nextCursor,optional"`
+	HasMore    bool           `json:"hasMore"`
+}
+
+type ListMyPostsRequest {
+	Cursor string `form:"cursor,optional"`
+	Limit  int64  `form:"limit,default=20,range=[1:50]"`
+	Status string `form:"status,optional"`
+}
+
+type MyPostListItem {
+	PostId                string         `json:"postId"`
+	DraftId               string         `json:"draftId"`
+	Title                 string         `json:"title"`
+	Summary               string         `json:"summary"`
+	HasCover              bool           `json:"hasCover"`
+	Cover                 CoverView      `json:"cover"`
+	Status                string         `json:"status"`
+	Visibility            string         `json:"visibility"`
+	PresentationMode      string         `json:"presentationMode"`
+	HasRoute              bool           `json:"hasRoute"`
+	Route                 RouteDraftView `json:"route"`
+	PostVersion           uint64         `json:"postVersion"`
+	DraftVersion          uint64         `json:"draftVersion"`
+	PublishedRevisionId   string         `json:"publishedRevisionId,optional"`
+	HasUnpublishedChanges bool           `json:"hasUnpublishedChanges"`
+	PublishedAt           string         `json:"publishedAt,optional"`
+	UpdatedAt             string         `json:"updatedAt"`
+}
+
+type ListMyPostsResponse {
+	Items      []MyPostListItem `json:"items"`
+	NextCursor string           `json:"nextCursor,optional"`
+	HasMore    bool             `json:"hasMore"`
+}
+
+@server (
+	prefix: /api/v1
+)
+service content-api {
+	@handler Health
+	get /health returns (HealthResponse)
+
+	@handler ListPosts
+	get /posts (ListPostsRequest) returns (ListPostsResponse)
+
+	@handler GetPost
+	get /posts/:postId (GetPostRequest) returns (GetPostResponse)
+}
+
+@server (
+	prefix: /api/v1
+	jwt:    Auth
+)
+service content-api {
+	@handler CreatePost
+	post /posts (CreatePostRequest) returns (CreatePostResponse)
+
+	@handler ListMyPosts
+	get /me/posts (ListMyPostsRequest) returns (ListMyPostsResponse)
+
+	@handler GetPostDraft
+	get /posts/:postId/draft (GetPostDraftRequest) returns (GetPostDraftResponse)
+
+	@handler SavePostDraft
+	put /posts/:postId/draft (SavePostDraftRequest) returns (SavePostDraftResponse)
+
+	@handler CreatePostRouteDraft
+	post /posts/:postId/route-draft (CreatePostRouteDraftRequest) returns (CreatePostRouteDraftResponse)
+
+	@handler DetachPostRouteDraft
+	delete /posts/:postId/route-draft (DetachPostRouteDraftRequest) returns (DetachPostRouteDraftResponse)
+
+	@handler PublishPost
+	post /posts/:postId/publish (PublishPostRequest) returns (PublishPostResponse)
+
+	@handler ChangePostVisibility
+	put /posts/:postId/visibility (ChangePostVisibilityRequest) returns (ChangePostVisibilityResponse)
+
+	@handler DeletePost
+	delete /posts/:postId (DeletePostRequest) returns (DeletePostResponse)
+}
+

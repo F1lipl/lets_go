@@ -4,44 +4,126 @@
 package types
 
 type ChangePostVisibilityRequest struct {
-	PostId          string `path:"postId"`
-	Visibility      string `json:"visibility"`
-	ExpectedVersion uint64 `json:"expectedVersion"`
+	PostId              string `path:"postId"`
+	Visibility          string `json:"visibility"`
+	ExpectedPostVersion uint64 `json:"expectedPostVersion"`
 }
 
 type ChangePostVisibilityResponse struct {
-	PostId     string `json:"postId"`
-	Visibility string `json:"visibility"`
-	Version    uint64 `json:"version"`
-	UpdatedAt  string `json:"updatedAt"`
+	PostId      string `json:"postId"`
+	Visibility  string `json:"visibility"`
+	PostVersion uint64 `json:"postVersion"`
+	UpdatedAt   string `json:"updatedAt"`
+}
+
+type ContentBlock struct {
+	BlockId       string         `json:"blockId"`
+	ParentBlockId string         `json:"parentBlockId,optional"`
+	BlockType     string         `json:"blockType"`
+	SortOrder     int64          `json:"sortOrder"`
+	Title         string         `json:"title,optional"`
+	Text          string         `json:"text,optional"`
+	AssetIds      []string       `json:"assetIds,optional"`
+	PlaceId       string         `json:"placeId,optional"`
+	Bindings      []RouteBinding `json:"bindings,optional"`
+}
+
+type CoverInput struct {
+	AssetId   string  `json:"assetId,optional"`
+	FocusX    float64 `json:"focusX,optional"`
+	FocusY    float64 `json:"focusY,optional"`
+	CropStyle string  `json:"cropStyle,optional"`
+}
+
+type CoverView struct {
+	AssetId      string  `json:"assetId,optional"`
+	FocusX       float64 `json:"focusX,optional"`
+	FocusY       float64 `json:"focusY,optional"`
+	CropStyle    string  `json:"cropStyle,optional"`
+	Width        int64   `json:"width,optional"`
+	Height       int64   `json:"height,optional"`
+	ThumbnailUrl string  `json:"thumbnailUrl,optional"`
+	LargeUrl     string  `json:"largeUrl,optional"`
 }
 
 type CreatePostRequest struct {
-	Title          string           `json:"title,optional"`
-	Content        string           `json:"content,optional"`
-	Visibility     string           `json:"visibility"`
-	Media          []PostMediaInput `json:"media,optional"`
-	TagIds         []string         `json:"tagIds,optional"`
-	PlaceIds       []string         `json:"placeIds,optional"`
-	TripSnapshotId string           `json:"tripSnapshotId,optional"`
+	Visibility       string       `json:"visibility"`
+	Title            string       `json:"title,optional"`
+	Summary          string       `json:"summary,optional"`
+	Cover            CoverInput   `json:"cover,optional"`
+	PresentationMode string       `json:"presentationMode"`
+	Document         PostDocument `json:"document"`
+	TagIds           []string     `json:"tagIds,optional"`
 }
 
 type CreatePostResponse struct {
-	PostId  string `json:"postId"`
-	Status  string `json:"status"`
-	Version uint64 `json:"version"`
+	PostId       string `json:"postId"`
+	DraftId      string `json:"draftId"`
+	Status       string `json:"status"`
+	PostVersion  uint64 `json:"postVersion"`
+	DraftVersion uint64 `json:"draftVersion"`
+	CreatedAt    string `json:"createdAt"`
+}
+
+type CreatePostRouteDraftRequest struct {
+	PostId               string `path:"postId"`
+	ExpectedDraftVersion uint64 `json:"expectedDraftVersion"`
+	RequestId            string `json:"requestId"`
+}
+
+type CreatePostRouteDraftResponse struct {
+	PostId       string `json:"postId"`
+	RouteDraftId string `json:"routeDraftId"`
+	RouteVersion uint64 `json:"routeVersion"`
+	DraftVersion uint64 `json:"draftVersion"`
+	CreatedAt    string `json:"createdAt"`
 }
 
 type DeletePostRequest struct {
-	PostId          string `path:"postId"`
-	ExpectedVersion uint64 `form:"expectedVersion"`
+	PostId              string `path:"postId"`
+	ExpectedPostVersion uint64 `form:"expectedPostVersion"`
 }
 
 type DeletePostResponse struct {
-	PostId    string `json:"postId"`
-	Status    string `json:"status"`
-	Version   uint64 `json:"version"`
-	DeletedAt string `json:"deletedAt"`
+	PostId      string `json:"postId"`
+	Status      string `json:"status"`
+	PostVersion uint64 `json:"postVersion"`
+	DeletedAt   string `json:"deletedAt"`
+}
+
+type DetachPostRouteDraftRequest struct {
+	PostId               string `path:"postId"`
+	ExpectedDraftVersion uint64 `form:"expectedDraftVersion"`
+}
+
+type DetachPostRouteDraftResponse struct {
+	PostId       string `json:"postId"`
+	DraftVersion uint64 `json:"draftVersion"`
+	UpdatedAt    string `json:"updatedAt"`
+}
+
+type GetPostDraftRequest struct {
+	PostId string `path:"postId"`
+}
+
+type GetPostDraftResponse struct {
+	PostId           string           `json:"postId"`
+	DraftId          string           `json:"draftId"`
+	Status           string           `json:"status"`
+	Visibility       string           `json:"visibility"`
+	Title            string           `json:"title"`
+	Summary          string           `json:"summary"`
+	HasCover         bool             `json:"hasCover"`
+	Cover            CoverView        `json:"cover"`
+	PresentationMode string           `json:"presentationMode"`
+	Document         PostDocument     `json:"document"`
+	MediaAssets      []MediaAssetView `json:"mediaAssets"`
+	Tags             []PostTag        `json:"tags"`
+	HasRoute         bool             `json:"hasRoute"`
+	Route            RouteDraftView   `json:"route"`
+	PostVersion      uint64           `json:"postVersion"`
+	DraftVersion     uint64           `json:"draftVersion"`
+	UpdatedAt        string           `json:"updatedAt"`
 }
 
 type GetPostRequest struct {
@@ -49,25 +131,27 @@ type GetPostRequest struct {
 }
 
 type GetPostResponse struct {
-	Id               string      `json:"id"`
-	AuthorId         string      `json:"authorId"`
-	Title            string      `json:"title"`
-	Content          string      `json:"content"`
-	Status           string      `json:"status"`
-	Visibility       string      `json:"visibility"`
-	Media            []PostMedia `json:"media"`
-	Tags             []PostTag   `json:"tags"`
-	PlaceIds         []string    `json:"placeIds"`
-	TripSnapshotId   string      `json:"tripSnapshotId,optional"`
-	LikeCount        uint64      `json:"likeCount"`
-	FavoriteCount    uint64      `json:"favoriteCount"`
-	CommentCount     uint64      `json:"commentCount"`
-	LikedByRequester bool        `json:"likedByRequester"`
-	SavedByRequester bool        `json:"savedByRequester"`
-	Version          uint64      `json:"version"`
-	PublishedAt      string      `json:"publishedAt,optional"`
-	CreatedAt        string      `json:"createdAt"`
-	UpdatedAt        string      `json:"updatedAt"`
+	PostId           string               `json:"postId"`
+	AuthorId         string               `json:"authorId"`
+	Status           string               `json:"status"`
+	Visibility       string               `json:"visibility"`
+	RevisionId       string               `json:"revisionId"`
+	RevisionNumber   uint64               `json:"revisionNumber"`
+	Title            string               `json:"title"`
+	Summary          string               `json:"summary"`
+	HasCover         bool                 `json:"hasCover"`
+	Cover            CoverView            `json:"cover"`
+	PresentationMode string               `json:"presentationMode"`
+	Document         PostDocument         `json:"document"`
+	MediaAssets      []MediaAssetView     `json:"mediaAssets"`
+	Tags             []PostTag            `json:"tags"`
+	HasRoute         bool                 `json:"hasRoute"`
+	Route            RouteSnapshotSummary `json:"route"`
+	LikeCount        uint64               `json:"likeCount"`
+	FavoriteCount    uint64               `json:"favoriteCount"`
+	CommentCount     uint64               `json:"commentCount"`
+	PostVersion      uint64               `json:"postVersion"`
+	PublishedAt      string               `json:"publishedAt"`
 }
 
 type HealthResponse struct {
@@ -87,11 +171,10 @@ type ListMyPostsResponse struct {
 }
 
 type ListPostsRequest struct {
-	Cursor   string `form:"cursor,optional"`
-	Limit    int64  `form:"limit,default=20,range=[1:50]"`
-	AuthorId string `form:"authorId,optional"`
-	TagId    string `form:"tagId,optional"`
-	PlaceId  string `form:"placeId,optional"`
+	Cursor  string `form:"cursor,optional"`
+	Limit   int64  `form:"limit,default=20,range=[1:50]"`
+	TagId   string `form:"tagId,optional"`
+	PlaceId string `form:"placeId,optional"`
 }
 
 type ListPostsResponse struct {
@@ -100,44 +183,54 @@ type ListPostsResponse struct {
 	HasMore    bool           `json:"hasMore"`
 }
 
-type MyPostListItem struct {
-	Id          string    `json:"id"`
-	Title       string    `json:"title"`
-	Summary     string    `json:"summary"`
-	Cover       PostMedia `json:"cover"`
-	Status      string    `json:"status"`
-	Visibility  string    `json:"visibility"`
-	Version     uint64    `json:"version"`
-	PublishedAt string    `json:"publishedAt,optional"`
-	CreatedAt   string    `json:"createdAt"`
-	UpdatedAt   string    `json:"updatedAt"`
-}
-
-type PostListItem struct {
-	Id            string    `json:"id"`
-	AuthorId      string    `json:"authorId"`
-	Title         string    `json:"title"`
-	Summary       string    `json:"summary"`
-	Cover         PostMedia `json:"cover"`
-	Tags          []PostTag `json:"tags"`
-	LikeCount     uint64    `json:"likeCount"`
-	FavoriteCount uint64    `json:"favoriteCount"`
-	CommentCount  uint64    `json:"commentCount"`
-	PublishedAt   string    `json:"publishedAt"`
-}
-
-type PostMedia struct {
+type MediaAssetView struct {
 	AssetId      string `json:"assetId"`
-	SortOrder    int64  `json:"sortOrder"`
 	Width        int64  `json:"width"`
 	Height       int64  `json:"height"`
 	ThumbnailUrl string `json:"thumbnailUrl"`
 	LargeUrl     string `json:"largeUrl"`
 }
 
-type PostMediaInput struct {
-	AssetId   string `json:"assetId"`
-	SortOrder int64  `json:"sortOrder"`
+type MyPostListItem struct {
+	PostId                string         `json:"postId"`
+	DraftId               string         `json:"draftId"`
+	Title                 string         `json:"title"`
+	Summary               string         `json:"summary"`
+	HasCover              bool           `json:"hasCover"`
+	Cover                 CoverView      `json:"cover"`
+	Status                string         `json:"status"`
+	Visibility            string         `json:"visibility"`
+	PresentationMode      string         `json:"presentationMode"`
+	HasRoute              bool           `json:"hasRoute"`
+	Route                 RouteDraftView `json:"route"`
+	PostVersion           uint64         `json:"postVersion"`
+	DraftVersion          uint64         `json:"draftVersion"`
+	PublishedRevisionId   string         `json:"publishedRevisionId,optional"`
+	HasUnpublishedChanges bool           `json:"hasUnpublishedChanges"`
+	PublishedAt           string         `json:"publishedAt,optional"`
+	UpdatedAt             string         `json:"updatedAt"`
+}
+
+type PostDocument struct {
+	SchemaVersion uint32         `json:"schemaVersion"`
+	Blocks        []ContentBlock `json:"blocks"`
+}
+
+type PostListItem struct {
+	PostId           string               `json:"postId"`
+	AuthorId         string               `json:"authorId"`
+	Title            string               `json:"title"`
+	Summary          string               `json:"summary"`
+	HasCover         bool                 `json:"hasCover"`
+	Cover            CoverView            `json:"cover"`
+	PresentationMode string               `json:"presentationMode"`
+	Tags             []PostTag            `json:"tags"`
+	HasRoute         bool                 `json:"hasRoute"`
+	Route            RouteSnapshotSummary `json:"route"`
+	LikeCount        uint64               `json:"likeCount"`
+	FavoriteCount    uint64               `json:"favoriteCount"`
+	CommentCount     uint64               `json:"commentCount"`
+	PublishedAt      string               `json:"publishedAt"`
 }
 
 type PostTag struct {
@@ -146,30 +239,56 @@ type PostTag struct {
 }
 
 type PublishPostRequest struct {
-	PostId          string `path:"postId"`
-	ExpectedVersion uint64 `json:"expectedVersion"`
+	PostId               string `path:"postId"`
+	ExpectedPostVersion  uint64 `json:"expectedPostVersion"`
+	ExpectedDraftVersion uint64 `json:"expectedDraftVersion"`
+	ExpectedRouteVersion uint64 `json:"expectedRouteVersion,optional"`
+	PublishRequestId     string `json:"publishRequestId"`
 }
 
 type PublishPostResponse struct {
-	PostId      string `json:"postId"`
-	Status      string `json:"status"`
-	Version     uint64 `json:"version"`
-	PublishedAt string `json:"publishedAt"`
+	PostId          string `json:"postId"`
+	RevisionId      string `json:"revisionId"`
+	RevisionNumber  uint64 `json:"revisionNumber"`
+	RouteSnapshotId string `json:"routeSnapshotId,optional"`
+	Status          string `json:"status"`
+	PostVersion     uint64 `json:"postVersion"`
+	PublishedAt     string `json:"publishedAt"`
 }
 
-type UpdatePostRequest struct {
-	PostId          string           `path:"postId"`
-	ExpectedVersion uint64           `json:"expectedVersion"`
-	Title           string           `json:"title,optional"`
-	Content         string           `json:"content,optional"`
-	Media           []PostMediaInput `json:"media,optional"`
-	TagIds          []string         `json:"tagIds,optional"`
-	PlaceIds        []string         `json:"placeIds,optional"`
-	TripSnapshotId  string           `json:"tripSnapshotId,optional"`
+type RouteBinding struct {
+	TargetType string `json:"targetType"`
+	TargetKey  string `json:"targetKey"`
 }
 
-type UpdatePostResponse struct {
-	PostId    string `json:"postId"`
-	Version   uint64 `json:"version"`
-	UpdatedAt string `json:"updatedAt"`
+type RouteDraftView struct {
+	RouteDraftId string `json:"routeDraftId,optional"`
+	RouteVersion uint64 `json:"routeVersion,optional"`
+}
+
+type RouteSnapshotSummary struct {
+	RouteSnapshotId string `json:"routeSnapshotId,optional"`
+	SnapshotVersion uint64 `json:"snapshotVersion,optional"`
+	DayCount        int64  `json:"dayCount,optional"`
+	NodeCount       int64  `json:"nodeCount,optional"`
+	PreviewAssetId  string `json:"previewAssetId,optional"`
+	PreviewUrl      string `json:"previewUrl,optional"`
+}
+
+type SavePostDraftRequest struct {
+	PostId               string       `path:"postId"`
+	ExpectedDraftVersion uint64       `json:"expectedDraftVersion"`
+	Title                string       `json:"title,optional"`
+	Summary              string       `json:"summary,optional"`
+	Cover                CoverInput   `json:"cover,optional"`
+	PresentationMode     string       `json:"presentationMode"`
+	Document             PostDocument `json:"document"`
+	TagIds               []string     `json:"tagIds,optional"`
+}
+
+type SavePostDraftResponse struct {
+	PostId       string `json:"postId"`
+	DraftId      string `json:"draftId"`
+	DraftVersion uint64 `json:"draftVersion"`
+	UpdatedAt    string `json:"updatedAt"`
 }

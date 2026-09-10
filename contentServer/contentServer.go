@@ -6,6 +6,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"strings"
 
 	"contentserver/internal/config"
 	"contentserver/internal/handler"
@@ -21,7 +23,13 @@ func main() {
 	flag.Parse()
 
 	var c config.Config
-	conf.MustLoad(*configFile, &c)
+	conf.MustLoad(*configFile, &c, conf.UseEnv())
+	if strings.TrimSpace(c.DataSource) == "" {
+		log.Fatal("CONTENT_DB_DSN must be configured")
+	}
+	if strings.TrimSpace(c.Auth.AccessSecret) == "" {
+		log.Fatal("CONTENT_ACCESS_SECRET must be configured")
+	}
 
 	server := rest.MustNewServer(c.RestConf)
 	defer server.Stop()

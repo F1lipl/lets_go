@@ -21,6 +21,22 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				Method:  http.MethodGet,
+				Path:    "/posts",
+				Handler: ListPostsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/posts/:postId",
+				Handler: GetPostHandler(serverCtx),
+			},
+		},
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
 				Path:    "/me/posts",
 				Handler: ListMyPostsHandler(serverCtx),
 			},
@@ -30,24 +46,19 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: CreatePostHandler(serverCtx),
 			},
 			{
-				Method:  http.MethodGet,
-				Path:    "/posts",
-				Handler: ListPostsHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
-				Path:    "/posts/:postId",
-				Handler: GetPostHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPut,
-				Path:    "/posts/:postId",
-				Handler: UpdatePostHandler(serverCtx),
-			},
-			{
 				Method:  http.MethodDelete,
 				Path:    "/posts/:postId",
 				Handler: DeletePostHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/posts/:postId/draft",
+				Handler: GetPostDraftHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/posts/:postId/draft",
+				Handler: SavePostDraftHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
@@ -55,11 +66,22 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: PublishPostHandler(serverCtx),
 			},
 			{
+				Method:  http.MethodPost,
+				Path:    "/posts/:postId/route-draft",
+				Handler: CreatePostRouteDraftHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodDelete,
+				Path:    "/posts/:postId/route-draft",
+				Handler: DetachPostRouteDraftHandler(serverCtx),
+			},
+			{
 				Method:  http.MethodPut,
 				Path:    "/posts/:postId/visibility",
 				Handler: ChangePostVisibilityHandler(serverCtx),
 			},
 		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
 		rest.WithPrefix("/api/v1"),
 	)
 }

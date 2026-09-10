@@ -12,16 +12,16 @@ import (
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func UpdatePostHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+func DetachPostRouteDraftHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.UpdatePostRequest
+		var req types.DetachPostRouteDraftRequest
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
 
-		l := logic.NewUpdatePostLogic(r.Context(), svcCtx)
-		resp, err := l.UpdatePost(&req)
+		l := logic.NewDetachPostRouteDraftLogic(r.Context(), svcCtx)
+		resp, err := l.DetachPostRouteDraft(&req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

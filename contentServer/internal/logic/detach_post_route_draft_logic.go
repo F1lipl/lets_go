@@ -12,21 +12,21 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type UpdatePostLogic struct {
+type DetachPostRouteDraftLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewUpdatePostLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdatePostLogic {
-	return &UpdatePostLogic{
+func NewDetachPostRouteDraftLogic(ctx context.Context, svcCtx *svc.ServiceContext) *DetachPostRouteDraftLogic {
+	return &DetachPostRouteDraftLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UpdatePostLogic) UpdatePost(req *types.UpdatePostRequest) (resp *types.UpdatePostResponse, err error) {
+func (l *DetachPostRouteDraftLogic) DetachPostRouteDraft(req *types.DetachPostRouteDraftRequest) (resp *types.DetachPostRouteDraftResponse, err error) {
 	// todo: add your logic here and delete this line
 
 	return
