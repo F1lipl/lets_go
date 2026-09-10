@@ -1,0 +1,212 @@
+syntax = "v1"
+
+info (
+	title:   "Content Service"
+	desc:    "Production-oriented content service API"
+	author:  "contentServer"
+	version: "1.0"
+)
+
+type HealthResponse {
+	Status string `json:"status"`
+}
+
+type PostMediaInput {
+	AssetId   string `json:"assetId"`
+	SortOrder int64  `json:"sortOrder"`
+}
+
+type PostMedia {
+	AssetId      string `json:"assetId"`
+	SortOrder    int64  `json:"sortOrder"`
+	Width        int64  `json:"width"`
+	Height       int64  `json:"height"`
+	ThumbnailUrl string `json:"thumbnailUrl"`
+	LargeUrl     string `json:"largeUrl"`
+}
+
+type PostTag {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type CreatePostRequest {
+	Title          string           `json:"title,optional"`
+	Content        string           `json:"content,optional"`
+	Visibility     string           `json:"visibility"`
+	Media          []PostMediaInput `json:"media,optional"`
+	TagIds         []string         `json:"tagIds,optional"`
+	PlaceIds       []string         `json:"placeIds,optional"`
+	TripSnapshotId string           `json:"tripSnapshotId,optional"`
+}
+
+type CreatePostResponse {
+	PostId  string `json:"postId"`
+	Status  string `json:"status"`
+	Version uint64 `json:"version"`
+}
+
+type UpdatePostRequest {
+	PostId          string           `path:"postId"`
+	ExpectedVersion uint64           `json:"expectedVersion"`
+	Title           string           `json:"title,optional"`
+	Content         string           `json:"content,optional"`
+	Media           []PostMediaInput `json:"media,optional"`
+	TagIds          []string         `json:"tagIds,optional"`
+	PlaceIds        []string         `json:"placeIds,optional"`
+	TripSnapshotId  string           `json:"tripSnapshotId,optional"`
+}
+
+type UpdatePostResponse {
+	PostId    string `json:"postId"`
+	Version   uint64 `json:"version"`
+	UpdatedAt string `json:"updatedAt"`
+}
+
+type PublishPostRequest {
+	PostId          string `path:"postId"`
+	ExpectedVersion uint64 `json:"expectedVersion"`
+}
+
+type PublishPostResponse {
+	PostId      string `json:"postId"`
+	Status      string `json:"status"`
+	Version     uint64 `json:"version"`
+	PublishedAt string `json:"publishedAt"`
+}
+
+type ChangePostVisibilityRequest {
+	PostId          string `path:"postId"`
+	Visibility      string `json:"visibility"`
+	ExpectedVersion uint64 `json:"expectedVersion"`
+}
+
+type ChangePostVisibilityResponse {
+	PostId     string `json:"postId"`
+	Visibility string `json:"visibility"`
+	Version    uint64 `json:"version"`
+	UpdatedAt  string `json:"updatedAt"`
+}
+
+type DeletePostRequest {
+	PostId          string `path:"postId"`
+	ExpectedVersion uint64 `form:"expectedVersion"`
+}
+
+type DeletePostResponse {
+	PostId    string `json:"postId"`
+	Status    string `json:"status"`
+	Version   uint64 `json:"version"`
+	DeletedAt string `json:"deletedAt"`
+}
+
+type GetPostRequest {
+	PostId string `path:"postId"`
+}
+
+type GetPostResponse {
+	Id               string      `json:"id"`
+	AuthorId         string      `json:"authorId"`
+	Title            string      `json:"title"`
+	Content          string      `json:"content"`
+	Status           string      `json:"status"`
+	Visibility       string      `json:"visibility"`
+	Media            []PostMedia `json:"media"`
+	Tags             []PostTag   `json:"tags"`
+	PlaceIds         []string    `json:"placeIds"`
+	TripSnapshotId   string      `json:"tripSnapshotId,optional"`
+	LikeCount        uint64      `json:"likeCount"`
+	FavoriteCount    uint64      `json:"favoriteCount"`
+	CommentCount     uint64      `json:"commentCount"`
+	LikedByRequester bool        `json:"likedByRequester"`
+	SavedByRequester bool        `json:"savedByRequester"`
+	Version          uint64      `json:"version"`
+	PublishedAt      string      `json:"publishedAt,optional"`
+	CreatedAt        string      `json:"createdAt"`
+	UpdatedAt        string      `json:"updatedAt"`
+}
+
+type ListPostsRequest {
+	Cursor   string `form:"cursor,optional"`
+	Limit    int64  `form:"limit,default=20,range=[1:50]"`
+	AuthorId string `form:"authorId,optional"`
+	TagId    string `form:"tagId,optional"`
+	PlaceId  string `form:"placeId,optional"`
+}
+
+type PostListItem {
+	Id            string    `json:"id"`
+	AuthorId      string    `json:"authorId"`
+	Title         string    `json:"title"`
+	Summary       string    `json:"summary"`
+	Cover         PostMedia `json:"cover"`
+	Tags          []PostTag `json:"tags"`
+	LikeCount     uint64    `json:"likeCount"`
+	FavoriteCount uint64    `json:"favoriteCount"`
+	CommentCount  uint64    `json:"commentCount"`
+	PublishedAt   string    `json:"publishedAt"`
+}
+
+type ListPostsResponse {
+	Items      []PostListItem `json:"items"`
+	NextCursor string         `json:"nextCursor,optional"`
+	HasMore    bool           `json:"hasMore"`
+}
+
+type ListMyPostsRequest {
+	Cursor string `form:"cursor,optional"`
+	Limit  int64  `form:"limit,default=20,range=[1:50]"`
+	Status string `form:"status,optional"`
+}
+
+type MyPostListItem {
+	Id          string    `json:"id"`
+	Title       string    `json:"title"`
+	Summary     string    `json:"summary"`
+	Cover       PostMedia `json:"cover"`
+	Status      string    `json:"status"`
+	Visibility  string    `json:"visibility"`
+	Version     uint64    `json:"version"`
+	PublishedAt string    `json:"publishedAt,optional"`
+	CreatedAt   string    `json:"createdAt"`
+	UpdatedAt   string    `json:"updatedAt"`
+}
+
+type ListMyPostsResponse {
+	Items      []MyPostListItem `json:"items"`
+	NextCursor string           `json:"nextCursor,optional"`
+	HasMore    bool             `json:"hasMore"`
+}
+
+@server (
+	prefix: /api/v1
+)
+service content-api {
+	@handler Health
+	get /health returns (HealthResponse)
+
+	@handler CreatePost
+	post /posts (CreatePostRequest) returns (CreatePostResponse)
+
+	@handler ListPosts
+	get /posts (ListPostsRequest) returns (ListPostsResponse)
+
+	@handler ListMyPosts
+	get /me/posts (ListMyPostsRequest) returns (ListMyPostsResponse)
+
+	@handler GetPost
+	get /posts/:postId (GetPostRequest) returns (GetPostResponse)
+
+	@handler UpdatePost
+	put /posts/:postId (UpdatePostRequest) returns (UpdatePostResponse)
+
+	@handler PublishPost
+	post /posts/:postId/publish (PublishPostRequest) returns (PublishPostResponse)
+
+	@handler ChangePostVisibility
+	put /posts/:postId/visibility (ChangePostVisibilityRequest) returns (ChangePostVisibilityResponse)
+
+	@handler DeletePost
+	delete /posts/:postId (DeletePostRequest) returns (DeletePostResponse)
+}
+

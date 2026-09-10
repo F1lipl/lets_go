@@ -1,0 +1,12 @@
+# Build output
+/bin/
+*.exe
+*.test
+
+# Local runtime files
+*.log
+.env
+
+# IDE and OS files
+.vscode/
+.DS_Store
