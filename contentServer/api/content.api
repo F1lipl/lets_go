@@ -4,11 +4,16 @@ info (
 	title:   "Content Service"
 	desc:    "Content service API based on Post and PostDraft aggregates"
 	author:  "contentServer"
-	version: "2.0"
+	version: "3.0"
 )
 
 type HealthResponse {
 	Status string `json:"status"`
+}
+
+type ReadinessResponse {
+	Status   string `json:"status"`
+	Database string `json:"database"`
 }
 
 type CoverInput {
@@ -53,6 +58,8 @@ type PostDocument {
 
 type MediaAssetView {
 	AssetId      string `json:"assetId"`
+	MimeType     string `json:"mimeType"`
+	Status       string `json:"status"`
 	Width        int64  `json:"width"`
 	Height       int64  `json:"height"`
 	ThumbnailUrl string `json:"thumbnailUrl"`
@@ -79,18 +86,18 @@ type RouteSnapshotSummary {
 }
 
 type CreatePostRequest {
+	RequestId        string       `json:"requestId"`
 	Visibility       string       `json:"visibility"`
 	Title            string       `json:"title,optional"`
 	Summary          string       `json:"summary,optional"`
 	Cover            CoverInput   `json:"cover,optional"`
 	PresentationMode string       `json:"presentationMode"`
 	Document         PostDocument `json:"document"`
-	TagIds           []string     `json:"tagIds,optional"`
+	TagNames         []string     `json:"tagNames,optional"`
 }
 
 type CreatePostResponse {
 	PostId       string `json:"postId"`
-	DraftId      string `json:"draftId"`
 	Status       string `json:"status"`
 	PostVersion  uint64 `json:"postVersion"`
 	DraftVersion uint64 `json:"draftVersion"`
@@ -103,7 +110,6 @@ type GetPostDraftRequest {
 
 type GetPostDraftResponse {
 	PostId           string           `json:"postId"`
-	DraftId          string           `json:"draftId"`
 	Status           string           `json:"status"`
 	Visibility       string           `json:"visibility"`
 	Title            string           `json:"title"`
@@ -113,7 +119,7 @@ type GetPostDraftResponse {
 	PresentationMode string           `json:"presentationMode"`
 	Document         PostDocument     `json:"document"`
 	MediaAssets      []MediaAssetView `json:"mediaAssets"`
-	Tags             []PostTag        `json:"tags"`
+	TagNames         []string         `json:"tagNames"`
 	HasRoute         bool             `json:"hasRoute"`
 	Route            RouteDraftView   `json:"route"`
 	PostVersion      uint64           `json:"postVersion"`
@@ -123,18 +129,18 @@ type GetPostDraftResponse {
 
 type SavePostDraftRequest {
 	PostId               string       `path:"postId"`
+	SaveRequestId        string       `json:"saveRequestId"`
 	ExpectedDraftVersion uint64       `json:"expectedDraftVersion"`
 	Title                string       `json:"title,optional"`
 	Summary              string       `json:"summary,optional"`
 	Cover                CoverInput   `json:"cover,optional"`
 	PresentationMode     string       `json:"presentationMode"`
 	Document             PostDocument `json:"document"`
-	TagIds               []string     `json:"tagIds,optional"`
+	TagNames             []string     `json:"tagNames,optional"`
 }
 
 type SavePostDraftResponse {
 	PostId       string `json:"postId"`
-	DraftId      string `json:"draftId"`
 	DraftVersion uint64 `json:"draftVersion"`
 	UpdatedAt    string `json:"updatedAt"`
 }
@@ -155,6 +161,7 @@ type CreatePostRouteDraftResponse {
 
 type DetachPostRouteDraftRequest {
 	PostId               string `path:"postId"`
+	RequestId            string `form:"requestId"`
 	ExpectedDraftVersion uint64 `form:"expectedDraftVersion"`
 }
 
@@ -184,6 +191,7 @@ type PublishPostResponse {
 
 type ChangePostVisibilityRequest {
 	PostId              string `path:"postId"`
+	RequestId           string `json:"requestId"`
 	Visibility          string `json:"visibility"`
 	ExpectedPostVersion uint64 `json:"expectedPostVersion"`
 }
@@ -197,6 +205,7 @@ type ChangePostVisibilityResponse {
 
 type DeletePostRequest {
 	PostId              string `path:"postId"`
+	RequestId           string `form:"requestId"`
 	ExpectedPostVersion uint64 `form:"expectedPostVersion"`
 }
 
@@ -273,7 +282,6 @@ type ListMyPostsRequest {
 
 type MyPostListItem {
 	PostId                string         `json:"postId"`
-	DraftId               string         `json:"draftId"`
 	Title                 string         `json:"title"`
 	Summary               string         `json:"summary"`
 	HasCover              bool           `json:"hasCover"`
@@ -297,6 +305,50 @@ type ListMyPostsResponse {
 	HasMore    bool             `json:"hasMore"`
 }
 
+type CreateImageUploadRequest {
+	RequestId   string `json:"requestId"`
+	FileName    string `json:"fileName"`
+	MimeType    string `json:"mimeType"`
+	FileSize    uint64 `json:"fileSize"`
+	ContentHash string `json:"contentHash,optional"`
+}
+
+type CreateImageUploadResponse {
+	AssetId   string `json:"assetId"`
+	Status    string `json:"status"`
+	UploadUrl string `json:"uploadUrl"`
+	ExpiresAt string `json:"expiresAt"`
+}
+
+type CompleteImageUploadRequest {
+	AssetId   string `path:"assetId"`
+	RequestId string `json:"requestId"`
+}
+
+type CompleteImageUploadResponse {
+	Asset MediaAssetView `json:"asset"`
+}
+
+type DeleteMediaAssetRequest {
+	AssetId   string `path:"assetId"`
+	RequestId string `form:"requestId"`
+}
+
+type DeleteMediaAssetResponse {
+	AssetId   string `json:"assetId"`
+	Status    string `json:"status"`
+	DeletedAt string `json:"deletedAt"`
+}
+
+type SearchTagsRequest {
+	Keyword string `form:"q"`
+	Limit   int64  `form:"limit,default=20,range=[1:50]"`
+}
+
+type SearchTagsResponse {
+	Items []PostTag `json:"items"`
+}
+
 @server (
 	prefix: /api/v1
 )
@@ -304,11 +356,17 @@ service content-api {
 	@handler Health
 	get /health returns (HealthResponse)
 
+	@handler Readiness
+	get /ready returns (ReadinessResponse)
+
 	@handler ListPosts
 	get /posts (ListPostsRequest) returns (ListPostsResponse)
 
 	@handler GetPost
 	get /posts/:postId (GetPostRequest) returns (GetPostResponse)
+
+	@handler SearchTags
+	get /tags/search (SearchTagsRequest) returns (SearchTagsResponse)
 }
 
 @server (
@@ -318,6 +376,15 @@ service content-api {
 service content-api {
 	@handler CreatePost
 	post /posts (CreatePostRequest) returns (CreatePostResponse)
+
+	@handler CreateImageUpload
+	post /media/assets (CreateImageUploadRequest) returns (CreateImageUploadResponse)
+
+	@handler CompleteImageUpload
+	post /media/assets/:assetId/complete (CompleteImageUploadRequest) returns (CompleteImageUploadResponse)
+
+	@handler DeleteMediaAsset
+	delete /media/assets/:assetId (DeleteMediaAssetRequest) returns (DeleteMediaAssetResponse)
 
 	@handler ListMyPosts
 	get /me/posts (ListMyPostsRequest) returns (ListMyPostsResponse)

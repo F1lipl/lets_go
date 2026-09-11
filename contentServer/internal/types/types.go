@@ -5,6 +5,7 @@ package types
 
 type ChangePostVisibilityRequest struct {
 	PostId              string `path:"postId"`
+	RequestId           string `json:"requestId"`
 	Visibility          string `json:"visibility"`
 	ExpectedPostVersion uint64 `json:"expectedPostVersion"`
 }
@@ -14,6 +15,15 @@ type ChangePostVisibilityResponse struct {
 	Visibility  string `json:"visibility"`
 	PostVersion uint64 `json:"postVersion"`
 	UpdatedAt   string `json:"updatedAt"`
+}
+
+type CompleteImageUploadRequest struct {
+	AssetId   string `path:"assetId"`
+	RequestId string `json:"requestId"`
+}
+
+type CompleteImageUploadResponse struct {
+	Asset MediaAssetView `json:"asset"`
 }
 
 type ContentBlock struct {
@@ -46,19 +56,34 @@ type CoverView struct {
 	LargeUrl     string  `json:"largeUrl,optional"`
 }
 
+type CreateImageUploadRequest struct {
+	RequestId   string `json:"requestId"`
+	FileName    string `json:"fileName"`
+	MimeType    string `json:"mimeType"`
+	FileSize    uint64 `json:"fileSize"`
+	ContentHash string `json:"contentHash,optional"`
+}
+
+type CreateImageUploadResponse struct {
+	AssetId   string `json:"assetId"`
+	Status    string `json:"status"`
+	UploadUrl string `json:"uploadUrl"`
+	ExpiresAt string `json:"expiresAt"`
+}
+
 type CreatePostRequest struct {
+	RequestId        string       `json:"requestId"`
 	Visibility       string       `json:"visibility"`
 	Title            string       `json:"title,optional"`
 	Summary          string       `json:"summary,optional"`
 	Cover            CoverInput   `json:"cover,optional"`
 	PresentationMode string       `json:"presentationMode"`
 	Document         PostDocument `json:"document"`
-	TagIds           []string     `json:"tagIds,optional"`
+	TagNames         []string     `json:"tagNames,optional"`
 }
 
 type CreatePostResponse struct {
 	PostId       string `json:"postId"`
-	DraftId      string `json:"draftId"`
 	Status       string `json:"status"`
 	PostVersion  uint64 `json:"postVersion"`
 	DraftVersion uint64 `json:"draftVersion"`
@@ -79,8 +104,20 @@ type CreatePostRouteDraftResponse struct {
 	CreatedAt    string `json:"createdAt"`
 }
 
+type DeleteMediaAssetRequest struct {
+	AssetId   string `path:"assetId"`
+	RequestId string `form:"requestId"`
+}
+
+type DeleteMediaAssetResponse struct {
+	AssetId   string `json:"assetId"`
+	Status    string `json:"status"`
+	DeletedAt string `json:"deletedAt"`
+}
+
 type DeletePostRequest struct {
 	PostId              string `path:"postId"`
+	RequestId           string `form:"requestId"`
 	ExpectedPostVersion uint64 `form:"expectedPostVersion"`
 }
 
@@ -93,6 +130,7 @@ type DeletePostResponse struct {
 
 type DetachPostRouteDraftRequest struct {
 	PostId               string `path:"postId"`
+	RequestId            string `form:"requestId"`
 	ExpectedDraftVersion uint64 `form:"expectedDraftVersion"`
 }
 
@@ -108,7 +146,6 @@ type GetPostDraftRequest struct {
 
 type GetPostDraftResponse struct {
 	PostId           string           `json:"postId"`
-	DraftId          string           `json:"draftId"`
 	Status           string           `json:"status"`
 	Visibility       string           `json:"visibility"`
 	Title            string           `json:"title"`
@@ -118,7 +155,7 @@ type GetPostDraftResponse struct {
 	PresentationMode string           `json:"presentationMode"`
 	Document         PostDocument     `json:"document"`
 	MediaAssets      []MediaAssetView `json:"mediaAssets"`
-	Tags             []PostTag        `json:"tags"`
+	TagNames         []string         `json:"tagNames"`
 	HasRoute         bool             `json:"hasRoute"`
 	Route            RouteDraftView   `json:"route"`
 	PostVersion      uint64           `json:"postVersion"`
@@ -185,6 +222,8 @@ type ListPostsResponse struct {
 
 type MediaAssetView struct {
 	AssetId      string `json:"assetId"`
+	MimeType     string `json:"mimeType"`
+	Status       string `json:"status"`
 	Width        int64  `json:"width"`
 	Height       int64  `json:"height"`
 	ThumbnailUrl string `json:"thumbnailUrl"`
@@ -193,7 +232,6 @@ type MediaAssetView struct {
 
 type MyPostListItem struct {
 	PostId                string         `json:"postId"`
-	DraftId               string         `json:"draftId"`
 	Title                 string         `json:"title"`
 	Summary               string         `json:"summary"`
 	HasCover              bool           `json:"hasCover"`
@@ -256,6 +294,11 @@ type PublishPostResponse struct {
 	PublishedAt     string `json:"publishedAt"`
 }
 
+type ReadinessResponse struct {
+	Status   string `json:"status"`
+	Database string `json:"database"`
+}
+
 type RouteBinding struct {
 	TargetType string `json:"targetType"`
 	TargetKey  string `json:"targetKey"`
@@ -277,18 +320,27 @@ type RouteSnapshotSummary struct {
 
 type SavePostDraftRequest struct {
 	PostId               string       `path:"postId"`
+	SaveRequestId        string       `json:"saveRequestId"`
 	ExpectedDraftVersion uint64       `json:"expectedDraftVersion"`
 	Title                string       `json:"title,optional"`
 	Summary              string       `json:"summary,optional"`
 	Cover                CoverInput   `json:"cover,optional"`
 	PresentationMode     string       `json:"presentationMode"`
 	Document             PostDocument `json:"document"`
-	TagIds               []string     `json:"tagIds,optional"`
+	TagNames             []string     `json:"tagNames,optional"`
 }
 
 type SavePostDraftResponse struct {
 	PostId       string `json:"postId"`
-	DraftId      string `json:"draftId"`
 	DraftVersion uint64 `json:"draftVersion"`
 	UpdatedAt    string `json:"updatedAt"`
+}
+
+type SearchTagsRequest struct {
+	Keyword string `form:"q"`
+	Limit   int64  `form:"limit,default=20,range=[1:50]"`
+}
+
+type SearchTagsResponse struct {
+	Items []PostTag `json:"items"`
 }

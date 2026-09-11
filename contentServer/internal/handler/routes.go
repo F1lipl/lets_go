@@ -29,6 +29,16 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/posts/:postId",
 				Handler: GetPostHandler(serverCtx),
 			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/ready",
+				Handler: ReadinessHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/tags/search",
+				Handler: SearchTagsHandler(serverCtx),
+			},
 		},
 		rest.WithPrefix("/api/v1"),
 	)
@@ -39,6 +49,21 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Method:  http.MethodGet,
 				Path:    "/me/posts",
 				Handler: ListMyPostsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/media/assets",
+				Handler: CreateImageUploadHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodDelete,
+				Path:    "/media/assets/:assetId",
+				Handler: DeleteMediaAssetHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/media/assets/:assetId/complete",
+				Handler: CompleteImageUploadHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,

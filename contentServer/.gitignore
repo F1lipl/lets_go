@@ -6,6 +6,7 @@
 # Local runtime files
 *.log
 .env
+.runtime/
 
 # IDE and OS files
 .vscode/
