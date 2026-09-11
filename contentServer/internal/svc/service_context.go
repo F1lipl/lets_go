@@ -6,12 +6,14 @@ package svc
 import (
 	"contentserver/internal/config"
 
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 type ServiceContext struct {
 	Config config.Config
 	DB     sqlx.SqlConn
+	Redis  *redis.Redis
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -20,5 +22,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	return &ServiceContext{
 		Config: c,
 		DB:     db,
+		Redis:  redis.MustNewRedis(c.Redis),
 	}
 }

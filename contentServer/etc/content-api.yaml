@@ -1,9 +1,9 @@
-Name: content-api
+Name: userServer-api
 Host: 0.0.0.0
-Port: 8889
+Port: 8888
 
 Log:
-  ServiceName: content-api
+  ServiceName: user-server-api
   Mode: file
   Encoding: json
   Path: logs
@@ -17,12 +17,22 @@ Log:
     SpanKey: span_id
 
 Telemetry:
-  Name: content-api
+  Name: user-server-api
   Endpoint: 127.0.0.1:4317
   Sampler: 1.0
   Batcher: otlpgrpc
 
-DataSource: "${CONTENT_DB_DSN}"
+Redis:
+  Host: 127.0.0.1:6379
+  Type: node
+  Pass: "123456"
+
+DataSource: "root:123456@tcp(127.0.0.1:3309)/user_server?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai"
+
 
 Auth:
-  AccessSecret: "${CONTENT_ACCESS_SECRET}"
+  AccessSecret: "Dr2dweO8FVvdhzIHSlmiUwwMAiTu+kErLL15grQe5UeE71U/BlGdt0oM1qu5ht89"
+  AccessExpire: 900
+  RefreshSecret: "A+ar5ZArgYdECzyt+lgKVvhVB19dJxcDsYxabv11hwqehTef2TXec9JBtQVgAFjp"
+  RefreshExpire: 604800 # 七天
+  CookieSecure: false # 本地HTTP调试；部署HTTPS后改为true
