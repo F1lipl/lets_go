@@ -3,14 +3,26 @@
 
 package types
 
+type BatchGetPostCardsData struct {
+	Items []PublishedPostCard `json:"items"`
+}
+
 type BatchGetPostCardsRequest struct {
 	PostIds []string `json:"postIds"`
 }
 
 type BatchGetPostCardsResponse struct {
-	ErrorCode int                 `json:"errorCode"`
-	Message   string              `json:"message"`
-	Items     []PublishedPostCard `json:"items"`
+	ErrorCode int                   `json:"errorCode"`
+	Message   string                `json:"message"`
+	Data      BatchGetPostCardsData `json:"data,omitempty"`
+	RequestId string                `json:"requestId,omitempty"`
+}
+
+type ChangePostVisibilityData struct {
+	PostId      string `json:"postId"`
+	Visibility  string `json:"visibility"`
+	PostVersion uint64 `json:"postVersion"`
+	UpdatedAt   string `json:"updatedAt"`
 }
 
 type ChangePostVisibilityRequest struct {
@@ -21,12 +33,14 @@ type ChangePostVisibilityRequest struct {
 }
 
 type ChangePostVisibilityResponse struct {
-	ErrorCode   int    `json:"errorCode"`
-	Message     string `json:"message"`
-	PostId      string `json:"postId"`
-	Visibility  string `json:"visibility"`
-	PostVersion uint64 `json:"postVersion"`
-	UpdatedAt   string `json:"updatedAt"`
+	ErrorCode int                      `json:"errorCode"`
+	Message   string                   `json:"message"`
+	Data      ChangePostVisibilityData `json:"data,omitempty"`
+	RequestId string                   `json:"requestId,omitempty"`
+}
+
+type CompleteImageUploadData struct {
+	Asset MediaAssetView `json:"asset"`
 }
 
 type CompleteImageUploadRequest struct {
@@ -35,9 +49,10 @@ type CompleteImageUploadRequest struct {
 }
 
 type CompleteImageUploadResponse struct {
-	ErrorCode int            `json:"errorCode"`
-	Message   string         `json:"message"`
-	Asset     MediaAssetView `json:"asset"`
+	ErrorCode int                     `json:"errorCode"`
+	Message   string                  `json:"message"`
+	Data      CompleteImageUploadData `json:"data,omitempty"`
+	RequestId string                  `json:"requestId,omitempty"`
 }
 
 type ContentBlock struct {
@@ -70,6 +85,13 @@ type CoverView struct {
 	LargeUrl     string  `json:"largeUrl,optional"`
 }
 
+type CreateImageUploadData struct {
+	AssetId   string `json:"assetId"`
+	Status    string `json:"status"`
+	UploadUrl string `json:"uploadUrl"`
+	ExpiresAt string `json:"expiresAt"`
+}
+
 type CreateImageUploadRequest struct {
 	RequestId   string `json:"requestId"`
 	FileName    string `json:"fileName"`
@@ -79,12 +101,18 @@ type CreateImageUploadRequest struct {
 }
 
 type CreateImageUploadResponse struct {
-	ErrorCode int    `json:"errorCode"`
-	Message   string `json:"message"`
-	AssetId   string `json:"assetId"`
-	Status    string `json:"status"`
-	UploadUrl string `json:"uploadUrl"`
-	ExpiresAt string `json:"expiresAt"`
+	ErrorCode int                   `json:"errorCode"`
+	Message   string                `json:"message"`
+	Data      CreateImageUploadData `json:"data,omitempty"`
+	RequestId string                `json:"requestId,omitempty"`
+}
+
+type CreatePostData struct {
+	PostId       string `json:"postId"`
+	Status       string `json:"status"`
+	PostVersion  uint64 `json:"postVersion"`
+	DraftVersion uint64 `json:"draftVersion"`
+	CreatedAt    string `json:"createdAt"`
 }
 
 type CreatePostRequest struct {
@@ -99,11 +127,16 @@ type CreatePostRequest struct {
 }
 
 type CreatePostResponse struct {
-	ErrorCode    int    `json:"errorCode"`
-	Message      string `json:"message"`
+	ErrorCode int            `json:"errorCode"`
+	Message   string         `json:"message"`
+	Data      CreatePostData `json:"data,omitempty"`
+	RequestId string         `json:"requestId,omitempty"`
+}
+
+type CreatePostRouteDraftData struct {
 	PostId       string `json:"postId"`
-	Status       string `json:"status"`
-	PostVersion  uint64 `json:"postVersion"`
+	RouteDraftId string `json:"routeDraftId"`
+	RouteVersion uint64 `json:"routeVersion"`
 	DraftVersion uint64 `json:"draftVersion"`
 	CreatedAt    string `json:"createdAt"`
 }
@@ -115,13 +148,10 @@ type CreatePostRouteDraftRequest struct {
 }
 
 type CreatePostRouteDraftResponse struct {
-	ErrorCode    int    `json:"errorCode"`
-	Message      string `json:"message"`
-	PostId       string `json:"postId"`
-	RouteDraftId string `json:"routeDraftId"`
-	RouteVersion uint64 `json:"routeVersion"`
-	DraftVersion uint64 `json:"draftVersion"`
-	CreatedAt    string `json:"createdAt"`
+	ErrorCode int                      `json:"errorCode"`
+	Message   string                   `json:"message"`
+	Data      CreatePostRouteDraftData `json:"data,omitempty"`
+	RequestId string                   `json:"requestId,omitempty"`
 }
 
 type CreatorPostCard struct {
@@ -143,17 +173,29 @@ type CreatorPostCard struct {
 	UpdatedAt             string         `json:"updatedAt"`
 }
 
+type DeleteMediaAssetData struct {
+	AssetId   string `json:"assetId"`
+	Status    string `json:"status"`
+	DeletedAt string `json:"deletedAt"`
+}
+
 type DeleteMediaAssetRequest struct {
 	AssetId   string `path:"assetId"`
 	RequestId string `form:"requestId"`
 }
 
 type DeleteMediaAssetResponse struct {
-	ErrorCode int    `json:"errorCode"`
-	Message   string `json:"message"`
-	AssetId   string `json:"assetId"`
-	Status    string `json:"status"`
-	DeletedAt string `json:"deletedAt"`
+	ErrorCode int                  `json:"errorCode"`
+	Message   string               `json:"message"`
+	Data      DeleteMediaAssetData `json:"data,omitempty"`
+	RequestId string               `json:"requestId,omitempty"`
+}
+
+type DeletePostData struct {
+	PostId      string `json:"postId"`
+	Status      string `json:"status"`
+	PostVersion uint64 `json:"postVersion"`
+	DeletedAt   string `json:"deletedAt"`
 }
 
 type DeletePostRequest struct {
@@ -163,12 +205,16 @@ type DeletePostRequest struct {
 }
 
 type DeletePostResponse struct {
-	ErrorCode   int    `json:"errorCode"`
-	Message     string `json:"message"`
-	PostId      string `json:"postId"`
-	Status      string `json:"status"`
-	PostVersion uint64 `json:"postVersion"`
-	DeletedAt   string `json:"deletedAt"`
+	ErrorCode int            `json:"errorCode"`
+	Message   string         `json:"message"`
+	Data      DeletePostData `json:"data,omitempty"`
+	RequestId string         `json:"requestId,omitempty"`
+}
+
+type DetachPostRouteDraftData struct {
+	PostId       string `json:"postId"`
+	DraftVersion uint64 `json:"draftVersion"`
+	UpdatedAt    string `json:"updatedAt"`
 }
 
 type DetachPostRouteDraftRequest struct {
@@ -178,45 +224,13 @@ type DetachPostRouteDraftRequest struct {
 }
 
 type DetachPostRouteDraftResponse struct {
-	ErrorCode    int    `json:"errorCode"`
-	Message      string `json:"message"`
-	PostId       string `json:"postId"`
-	DraftVersion uint64 `json:"draftVersion"`
-	UpdatedAt    string `json:"updatedAt"`
+	ErrorCode int                      `json:"errorCode"`
+	Message   string                   `json:"message"`
+	Data      DetachPostRouteDraftData `json:"data,omitempty"`
+	RequestId string                   `json:"requestId,omitempty"`
 }
 
-type GetPostDraftRequest struct {
-	PostId string `path:"postId"`
-}
-
-type GetPostDraftResponse struct {
-	ErrorCode        int              `json:"errorCode"`
-	Message          string           `json:"message"`
-	PostId           string           `json:"postId"`
-	Status           string           `json:"status"`
-	Visibility       string           `json:"visibility"`
-	Title            string           `json:"title"`
-	Summary          string           `json:"summary"`
-	HasCover         bool             `json:"hasCover"`
-	Cover            CoverView        `json:"cover"`
-	PresentationMode string           `json:"presentationMode"`
-	Document         PostDocument     `json:"document"`
-	MediaAssets      []MediaAssetView `json:"mediaAssets"`
-	TagNames         []string         `json:"tagNames"`
-	HasRoute         bool             `json:"hasRoute"`
-	Route            RouteDraftView   `json:"route"`
-	PostVersion      uint64           `json:"postVersion"`
-	DraftVersion     uint64           `json:"draftVersion"`
-	UpdatedAt        string           `json:"updatedAt"`
-}
-
-type GetPostRequest struct {
-	PostId string `path:"postId"`
-}
-
-type GetPostResponse struct {
-	ErrorCode        int                  `json:"errorCode"`
-	Message          string               `json:"message"`
+type GetPostData struct {
 	PostId           string               `json:"postId"`
 	AuthorId         string               `json:"authorId"`
 	Status           string               `json:"status"`
@@ -240,8 +254,55 @@ type GetPostResponse struct {
 	PublishedAt      string               `json:"publishedAt"`
 }
 
+type GetPostDraftData struct {
+	PostId           string           `json:"postId"`
+	Status           string           `json:"status"`
+	Visibility       string           `json:"visibility"`
+	Title            string           `json:"title"`
+	Summary          string           `json:"summary"`
+	HasCover         bool             `json:"hasCover"`
+	Cover            CoverView        `json:"cover"`
+	PresentationMode string           `json:"presentationMode"`
+	Document         PostDocument     `json:"document"`
+	MediaAssets      []MediaAssetView `json:"mediaAssets"`
+	TagNames         []string         `json:"tagNames"`
+	HasRoute         bool             `json:"hasRoute"`
+	Route            RouteDraftView   `json:"route"`
+	PostVersion      uint64           `json:"postVersion"`
+	DraftVersion     uint64           `json:"draftVersion"`
+	UpdatedAt        string           `json:"updatedAt"`
+}
+
+type GetPostDraftRequest struct {
+	PostId string `path:"postId"`
+}
+
+type GetPostDraftResponse struct {
+	ErrorCode int              `json:"errorCode"`
+	Message   string           `json:"message"`
+	Data      GetPostDraftData `json:"data,omitempty"`
+	RequestId string           `json:"requestId,omitempty"`
+}
+
+type GetPostRequest struct {
+	PostId string `path:"postId"`
+}
+
+type GetPostResponse struct {
+	ErrorCode int         `json:"errorCode"`
+	Message   string      `json:"message"`
+	Data      GetPostData `json:"data,omitempty"`
+	RequestId string      `json:"requestId,omitempty"`
+}
+
 type HealthResponse struct {
 	Status string `json:"status"`
+}
+
+type ListMyPostsData struct {
+	Items      []CreatorPostCard `json:"items"`
+	NextCursor string            `json:"nextCursor,optional"`
+	HasMore    bool              `json:"hasMore"`
 }
 
 type ListMyPostsRequest struct {
@@ -251,11 +312,16 @@ type ListMyPostsRequest struct {
 }
 
 type ListMyPostsResponse struct {
-	ErrorCode  int               `json:"errorCode"`
-	Message    string            `json:"message"`
-	Items      []CreatorPostCard `json:"items"`
-	NextCursor string            `json:"nextCursor,optional"`
-	HasMore    bool              `json:"hasMore"`
+	ErrorCode int             `json:"errorCode"`
+	Message   string          `json:"message"`
+	Data      ListMyPostsData `json:"data,omitempty"`
+	RequestId string          `json:"requestId,omitempty"`
+}
+
+type ListPostsData struct {
+	Items      []PublishedPostCard `json:"items"`
+	NextCursor string              `json:"nextCursor,optional"`
+	HasMore    bool                `json:"hasMore"`
 }
 
 type ListPostsRequest struct {
@@ -266,11 +332,10 @@ type ListPostsRequest struct {
 }
 
 type ListPostsResponse struct {
-	ErrorCode  int                 `json:"errorCode"`
-	Message    string              `json:"message"`
-	Items      []PublishedPostCard `json:"items"`
-	NextCursor string              `json:"nextCursor,optional"`
-	HasMore    bool                `json:"hasMore"`
+	ErrorCode int           `json:"errorCode"`
+	Message   string        `json:"message"`
+	Data      ListPostsData `json:"data,omitempty"`
+	RequestId string        `json:"requestId,omitempty"`
 }
 
 type MediaAssetView struct {
@@ -293,6 +358,16 @@ type PostTag struct {
 	Name string `json:"name"`
 }
 
+type PublishPostData struct {
+	PostId          string `json:"postId"`
+	RevisionId      string `json:"revisionId"`
+	RevisionNumber  uint64 `json:"revisionNumber"`
+	RouteSnapshotId string `json:"routeSnapshotId,optional"`
+	Status          string `json:"status"`
+	PostVersion     uint64 `json:"postVersion"`
+	PublishedAt     string `json:"publishedAt"`
+}
+
 type PublishPostRequest struct {
 	PostId               string `path:"postId"`
 	ExpectedPostVersion  uint64 `json:"expectedPostVersion"`
@@ -302,15 +377,10 @@ type PublishPostRequest struct {
 }
 
 type PublishPostResponse struct {
-	ErrorCode       int    `json:"errorCode"`
-	Message         string `json:"message"`
-	PostId          string `json:"postId"`
-	RevisionId      string `json:"revisionId"`
-	RevisionNumber  uint64 `json:"revisionNumber"`
-	RouteSnapshotId string `json:"routeSnapshotId,optional"`
-	Status          string `json:"status"`
-	PostVersion     uint64 `json:"postVersion"`
-	PublishedAt     string `json:"publishedAt"`
+	ErrorCode int             `json:"errorCode"`
+	Message   string          `json:"message"`
+	Data      PublishPostData `json:"data,omitempty"`
+	RequestId string          `json:"requestId,omitempty"`
 }
 
 type PublishedPostCard struct {
@@ -357,6 +427,12 @@ type RouteSnapshotSummary struct {
 	PreviewUrl      string `json:"previewUrl,optional"`
 }
 
+type SavePostDraftData struct {
+	PostId       string `json:"postId"`
+	DraftVersion uint64 `json:"draftVersion"`
+	UpdatedAt    string `json:"updatedAt"`
+}
+
 type SavePostDraftRequest struct {
 	PostId               string       `path:"postId"`
 	SaveRequestId        string       `json:"saveRequestId"`
@@ -370,11 +446,14 @@ type SavePostDraftRequest struct {
 }
 
 type SavePostDraftResponse struct {
-	ErrorCode    int    `json:"errorCode"`
-	Message      string `json:"message"`
-	PostId       string `json:"postId"`
-	DraftVersion uint64 `json:"draftVersion"`
-	UpdatedAt    string `json:"updatedAt"`
+	ErrorCode int               `json:"errorCode"`
+	Message   string            `json:"message"`
+	Data      SavePostDraftData `json:"data,omitempty"`
+	RequestId string            `json:"requestId,omitempty"`
+}
+
+type SearchTagsData struct {
+	Items []PostTag `json:"items"`
 }
 
 type SearchTagsRequest struct {
@@ -383,7 +462,8 @@ type SearchTagsRequest struct {
 }
 
 type SearchTagsResponse struct {
-	ErrorCode int       `json:"errorCode"`
-	Message   string    `json:"message"`
-	Items     []PostTag `json:"items"`
+	ErrorCode int            `json:"errorCode"`
+	Message   string         `json:"message"`
+	Data      SearchTagsData `json:"data,omitempty"`
+	RequestId string         `json:"requestId,omitempty"`
 }

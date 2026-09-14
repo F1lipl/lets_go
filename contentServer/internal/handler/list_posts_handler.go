@@ -21,11 +21,7 @@ func ListPostsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := logic.NewListPostsLogic(r.Context(), svcCtx)
-		resp, err := l.ListPosts(&req)
-		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
-		}
+		data, err := l.ListPosts(&req)
+		writeBusinessResponse(r.Context(), w, data, err)
 	}
 }

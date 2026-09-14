@@ -26,7 +26,7 @@ func NewChangePostVisibilityLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *ChangePostVisibilityLogic) ChangePostVisibility(req *types.ChangePostVisibilityRequest) (resp *types.ChangePostVisibilityResponse, err error) {
+func (l *ChangePostVisibilityLogic) ChangePostVisibility(req *types.ChangePostVisibilityRequest) (data *types.ChangePostVisibilityData, err error) {
 	// todo: add your logic here and delete this line
 
 	return

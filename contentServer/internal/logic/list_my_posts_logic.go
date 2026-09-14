@@ -26,7 +26,7 @@ func NewListMyPostsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListM
 	}
 }
 
-func (l *ListMyPostsLogic) ListMyPosts(req *types.ListMyPostsRequest) (resp *types.ListMyPostsResponse, err error) {
+func (l *ListMyPostsLogic) ListMyPosts(req *types.ListMyPostsRequest) (data *types.ListMyPostsData, err error) {
 	// todo: add your logic here and delete this line
 
 	return

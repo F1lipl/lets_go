@@ -21,11 +21,7 @@ func PublishPostHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := logic.NewPublishPostLogic(r.Context(), svcCtx)
-		resp, err := l.PublishPost(&req)
-		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
-		}
+		data, err := l.PublishPost(&req)
+		writeBusinessResponse(r.Context(), w, data, err)
 	}
 }

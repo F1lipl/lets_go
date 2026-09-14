@@ -21,11 +21,7 @@ func SearchTagsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := logic.NewSearchTagsLogic(r.Context(), svcCtx)
-		resp, err := l.SearchTags(&req)
-		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
-		}
+		data, err := l.SearchTags(&req)
+		writeBusinessResponse(r.Context(), w, data, err)
 	}
 }

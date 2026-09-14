@@ -21,11 +21,7 @@ func CompleteImageUploadHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := logic.NewCompleteImageUploadLogic(r.Context(), svcCtx)
-		resp, err := l.CompleteImageUpload(&req)
-		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
-		}
+		data, err := l.CompleteImageUpload(&req)
+		writeBusinessResponse(r.Context(), w, data, err)
 	}
 }

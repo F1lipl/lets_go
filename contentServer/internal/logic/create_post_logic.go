@@ -26,7 +26,7 @@ func NewCreatePostLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Create
 	}
 }
 
-func (l *CreatePostLogic) CreatePost(req *types.CreatePostRequest) (resp *types.CreatePostResponse, err error) {
+func (l *CreatePostLogic) CreatePost(req *types.CreatePostRequest) (data *types.CreatePostData, err error) {
 	// todo: add your logic here and delete this line
 
 	return

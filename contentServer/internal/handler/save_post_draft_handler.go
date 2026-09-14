@@ -21,11 +21,7 @@ func SavePostDraftHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := logic.NewSavePostDraftLogic(r.Context(), svcCtx)
-		resp, err := l.SavePostDraft(&req)
-		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
-		}
+		data, err := l.SavePostDraft(&req)
+		writeBusinessResponse(r.Context(), w, data, err)
 	}
 }

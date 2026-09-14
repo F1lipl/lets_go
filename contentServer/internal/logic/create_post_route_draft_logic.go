@@ -26,7 +26,7 @@ func NewCreatePostRouteDraftLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *CreatePostRouteDraftLogic) CreatePostRouteDraft(req *types.CreatePostRouteDraftRequest) (resp *types.CreatePostRouteDraftResponse, err error) {
+func (l *CreatePostRouteDraftLogic) CreatePostRouteDraft(req *types.CreatePostRouteDraftRequest) (data *types.CreatePostRouteDraftData, err error) {
 	// todo: add your logic here and delete this line
 
 	return

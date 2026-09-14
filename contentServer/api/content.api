@@ -96,9 +96,7 @@ type CreatePostRequest {
 	TagNames         []string     `json:"tagNames,optional"`
 }
 
-type CreatePostResponse {
-	ErrorCode    int    `json:"errorCode"`
-	Message      string `json:"message"`
+type CreatePostData {
 	PostId       string `json:"postId"`
 	Status       string `json:"status"`
 	PostVersion  uint64 `json:"postVersion"`
@@ -106,13 +104,18 @@ type CreatePostResponse {
 	CreatedAt    string `json:"createdAt"`
 }
 
+type CreatePostResponse {
+	ErrorCode int            `json:"errorCode"`
+	Message   string         `json:"message"`
+	Data      CreatePostData `json:"data,omitempty"`
+	RequestId string         `json:"requestId,omitempty"`
+}
+
 type GetPostDraftRequest {
 	PostId string `path:"postId"`
 }
 
-type GetPostDraftResponse {
-	ErrorCode        int              `json:"errorCode"`
-	Message          string           `json:"message"`
+type GetPostDraftData {
 	PostId           string           `json:"postId"`
 	Status           string           `json:"status"`
 	Visibility       string           `json:"visibility"`
@@ -131,6 +134,13 @@ type GetPostDraftResponse {
 	UpdatedAt        string           `json:"updatedAt"`
 }
 
+type GetPostDraftResponse {
+	ErrorCode int              `json:"errorCode"`
+	Message   string           `json:"message"`
+	Data      GetPostDraftData `json:"data,omitempty"`
+	RequestId string           `json:"requestId,omitempty"`
+}
+
 type SavePostDraftRequest {
 	PostId               string       `path:"postId"`
 	SaveRequestId        string       `json:"saveRequestId"`
@@ -143,12 +153,17 @@ type SavePostDraftRequest {
 	TagNames             []string     `json:"tagNames,optional"`
 }
 
-type SavePostDraftResponse {
-	ErrorCode    int    `json:"errorCode"`
-	Message      string `json:"message"`
+type SavePostDraftData {
 	PostId       string `json:"postId"`
 	DraftVersion uint64 `json:"draftVersion"`
 	UpdatedAt    string `json:"updatedAt"`
+}
+
+type SavePostDraftResponse {
+	ErrorCode int               `json:"errorCode"`
+	Message   string            `json:"message"`
+	Data      SavePostDraftData `json:"data,omitempty"`
+	RequestId string            `json:"requestId,omitempty"`
 }
 
 type CreatePostRouteDraftRequest {
@@ -157,14 +172,19 @@ type CreatePostRouteDraftRequest {
 	RequestId            string `json:"requestId"`
 }
 
-type CreatePostRouteDraftResponse {
-	ErrorCode    int    `json:"errorCode"`
-	Message      string `json:"message"`
+type CreatePostRouteDraftData {
 	PostId       string `json:"postId"`
 	RouteDraftId string `json:"routeDraftId"`
 	RouteVersion uint64 `json:"routeVersion"`
 	DraftVersion uint64 `json:"draftVersion"`
 	CreatedAt    string `json:"createdAt"`
+}
+
+type CreatePostRouteDraftResponse {
+	ErrorCode int                      `json:"errorCode"`
+	Message   string                   `json:"message"`
+	Data      CreatePostRouteDraftData `json:"data,omitempty"`
+	RequestId string                   `json:"requestId,omitempty"`
 }
 
 type DetachPostRouteDraftRequest {
@@ -173,12 +193,17 @@ type DetachPostRouteDraftRequest {
 	ExpectedDraftVersion uint64 `form:"expectedDraftVersion"`
 }
 
-type DetachPostRouteDraftResponse {
-	ErrorCode    int    `json:"errorCode"`
-	Message      string `json:"message"`
+type DetachPostRouteDraftData {
 	PostId       string `json:"postId"`
 	DraftVersion uint64 `json:"draftVersion"`
 	UpdatedAt    string `json:"updatedAt"`
+}
+
+type DetachPostRouteDraftResponse {
+	ErrorCode int                      `json:"errorCode"`
+	Message   string                   `json:"message"`
+	Data      DetachPostRouteDraftData `json:"data,omitempty"`
+	RequestId string                   `json:"requestId,omitempty"`
 }
 
 type PublishPostRequest {
@@ -189,9 +214,7 @@ type PublishPostRequest {
 	PublishRequestId     string `json:"publishRequestId"`
 }
 
-type PublishPostResponse {
-	ErrorCode       int    `json:"errorCode"`
-	Message         string `json:"message"`
+type PublishPostData {
 	PostId          string `json:"postId"`
 	RevisionId      string `json:"revisionId"`
 	RevisionNumber  uint64 `json:"revisionNumber"`
@@ -201,6 +224,13 @@ type PublishPostResponse {
 	PublishedAt     string `json:"publishedAt"`
 }
 
+type PublishPostResponse {
+	ErrorCode int             `json:"errorCode"`
+	Message   string          `json:"message"`
+	Data      PublishPostData `json:"data,omitempty"`
+	RequestId string          `json:"requestId,omitempty"`
+}
+
 type ChangePostVisibilityRequest {
 	PostId              string `path:"postId"`
 	RequestId           string `json:"requestId"`
@@ -208,13 +238,18 @@ type ChangePostVisibilityRequest {
 	ExpectedPostVersion uint64 `json:"expectedPostVersion"`
 }
 
-type ChangePostVisibilityResponse {
-	ErrorCode   int    `json:"errorCode"`
-	Message     string `json:"message"`
+type ChangePostVisibilityData {
 	PostId      string `json:"postId"`
 	Visibility  string `json:"visibility"`
 	PostVersion uint64 `json:"postVersion"`
 	UpdatedAt   string `json:"updatedAt"`
+}
+
+type ChangePostVisibilityResponse {
+	ErrorCode int                      `json:"errorCode"`
+	Message   string                   `json:"message"`
+	Data      ChangePostVisibilityData `json:"data,omitempty"`
+	RequestId string                   `json:"requestId,omitempty"`
 }
 
 type DeletePostRequest {
@@ -223,22 +258,25 @@ type DeletePostRequest {
 	ExpectedPostVersion uint64 `form:"expectedPostVersion"`
 }
 
-type DeletePostResponse {
-	ErrorCode   int    `json:"errorCode"`
-	Message     string `json:"message"`
+type DeletePostData {
 	PostId      string `json:"postId"`
 	Status      string `json:"status"`
 	PostVersion uint64 `json:"postVersion"`
 	DeletedAt   string `json:"deletedAt"`
 }
 
+type DeletePostResponse {
+	ErrorCode int            `json:"errorCode"`
+	Message   string         `json:"message"`
+	Data      DeletePostData `json:"data,omitempty"`
+	RequestId string         `json:"requestId,omitempty"`
+}
+
 type GetPostRequest {
 	PostId string `path:"postId"`
 }
 
-type GetPostResponse {
-	ErrorCode        int                  `json:"errorCode"`
-	Message          string               `json:"message"`
+type GetPostData {
 	PostId           string               `json:"postId"`
 	AuthorId         string               `json:"authorId"`
 	Status           string               `json:"status"`
@@ -260,6 +298,13 @@ type GetPostResponse {
 	CommentCount     uint64               `json:"commentCount"`
 	PostVersion      uint64               `json:"postVersion"`
 	PublishedAt      string               `json:"publishedAt"`
+}
+
+type GetPostResponse {
+	ErrorCode int         `json:"errorCode"`
+	Message   string      `json:"message"`
+	Data      GetPostData `json:"data,omitempty"`
+	RequestId string      `json:"requestId,omitempty"`
 }
 
 type ListPostsRequest {
@@ -289,12 +334,17 @@ type PublishedPostCard {
 	PublishedAt      string               `json:"publishedAt"`
 }
 
-type ListPostsResponse {
-	ErrorCode  int                 `json:"errorCode"`
-	Message    string              `json:"message"`
+type ListPostsData {
 	Items      []PublishedPostCard `json:"items"`
 	NextCursor string              `json:"nextCursor,optional"`
 	HasMore    bool                `json:"hasMore"`
+}
+
+type ListPostsResponse {
+	ErrorCode int           `json:"errorCode"`
+	Message   string        `json:"message"`
+	Data      ListPostsData `json:"data,omitempty"`
+	RequestId string        `json:"requestId,omitempty"`
 }
 
 type ListMyPostsRequest {
@@ -322,22 +372,32 @@ type CreatorPostCard {
 	UpdatedAt             string         `json:"updatedAt"`
 }
 
-type ListMyPostsResponse {
-	ErrorCode  int               `json:"errorCode"`
-	Message    string            `json:"message"`
+type ListMyPostsData {
 	Items      []CreatorPostCard `json:"items"`
 	NextCursor string            `json:"nextCursor,optional"`
 	HasMore    bool              `json:"hasMore"`
+}
+
+type ListMyPostsResponse {
+	ErrorCode int             `json:"errorCode"`
+	Message   string          `json:"message"`
+	Data      ListMyPostsData `json:"data,omitempty"`
+	RequestId string          `json:"requestId,omitempty"`
 }
 
 type BatchGetPostCardsRequest {
 	PostIds []string `json:"postIds"`
 }
 
+type BatchGetPostCardsData {
+	Items []PublishedPostCard `json:"items"`
+}
+
 type BatchGetPostCardsResponse {
-	ErrorCode int                 `json:"errorCode"`
-	Message   string              `json:"message"`
-	Items     []PublishedPostCard `json:"items"`
+	ErrorCode int                   `json:"errorCode"`
+	Message   string                `json:"message"`
+	Data      BatchGetPostCardsData `json:"data,omitempty"`
+	RequestId string                `json:"requestId,omitempty"`
 }
 
 type CreateImageUploadRequest {
@@ -348,13 +408,18 @@ type CreateImageUploadRequest {
 	ContentHash string `json:"contentHash,optional"`
 }
 
-type CreateImageUploadResponse {
-	ErrorCode int    `json:"errorCode"`
-	Message   string `json:"message"`
+type CreateImageUploadData {
 	AssetId   string `json:"assetId"`
 	Status    string `json:"status"`
 	UploadUrl string `json:"uploadUrl"`
 	ExpiresAt string `json:"expiresAt"`
+}
+
+type CreateImageUploadResponse {
+	ErrorCode int                   `json:"errorCode"`
+	Message   string                `json:"message"`
+	Data      CreateImageUploadData `json:"data,omitempty"`
+	RequestId string                `json:"requestId,omitempty"`
 }
 
 type CompleteImageUploadRequest {
@@ -362,10 +427,15 @@ type CompleteImageUploadRequest {
 	RequestId string `json:"requestId"`
 }
 
+type CompleteImageUploadData {
+	Asset MediaAssetView `json:"asset"`
+}
+
 type CompleteImageUploadResponse {
-	ErrorCode int            `json:"errorCode"`
-	Message   string         `json:"message"`
-	Asset     MediaAssetView `json:"asset"`
+	ErrorCode int                     `json:"errorCode"`
+	Message   string                  `json:"message"`
+	Data      CompleteImageUploadData `json:"data,omitempty"`
+	RequestId string                  `json:"requestId,omitempty"`
 }
 
 type DeleteMediaAssetRequest {
@@ -373,12 +443,17 @@ type DeleteMediaAssetRequest {
 	RequestId string `form:"requestId"`
 }
 
-type DeleteMediaAssetResponse {
-	ErrorCode int    `json:"errorCode"`
-	Message   string `json:"message"`
+type DeleteMediaAssetData {
 	AssetId   string `json:"assetId"`
 	Status    string `json:"status"`
 	DeletedAt string `json:"deletedAt"`
+}
+
+type DeleteMediaAssetResponse {
+	ErrorCode int                  `json:"errorCode"`
+	Message   string               `json:"message"`
+	Data      DeleteMediaAssetData `json:"data,omitempty"`
+	RequestId string               `json:"requestId,omitempty"`
 }
 
 type SearchTagsRequest {
@@ -386,10 +461,15 @@ type SearchTagsRequest {
 	Limit   int64  `form:"limit,default=20,range=[1:50]"`
 }
 
+type SearchTagsData {
+	Items []PostTag `json:"items"`
+}
+
 type SearchTagsResponse {
-	ErrorCode int       `json:"errorCode"`
-	Message   string    `json:"message"`
-	Items     []PostTag `json:"items"`
+	ErrorCode int            `json:"errorCode"`
+	Message   string         `json:"message"`
+	Data      SearchTagsData `json:"data,omitempty"`
+	RequestId string         `json:"requestId,omitempty"`
 }
 
 @server (

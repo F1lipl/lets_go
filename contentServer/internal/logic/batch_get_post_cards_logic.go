@@ -26,7 +26,7 @@ func NewBatchGetPostCardsLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	}
 }
 
-func (l *BatchGetPostCardsLogic) BatchGetPostCards(req *types.BatchGetPostCardsRequest) (resp *types.BatchGetPostCardsResponse, err error) {
-	
+func (l *BatchGetPostCardsLogic) BatchGetPostCards(req *types.BatchGetPostCardsRequest) (data *types.BatchGetPostCardsData, err error) {
+
 	return
 }

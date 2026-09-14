@@ -8,6 +8,9 @@ import (
 
 	"contentserver/internal/logic"
 	"contentserver/internal/svc"
+	"contentserver/internal/types"
+
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
@@ -16,9 +19,14 @@ func ReadinessHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		l := logic.NewReadinessLogic(r.Context(), svcCtx)
 		resp, err := l.Readiness()
 		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
+			logx.WithContext(r.Context()).Errorw("readiness check failed", logx.Field("detail", err.Error()))
+			httpx.WriteJsonCtx(r.Context(), w, http.StatusServiceUnavailable, &types.ReadinessResponse{
+				Status:   "not_ready",
+				Database: "unavailable",
+			})
+			return
 		}
+
+		httpx.OkJsonCtx(r.Context(), w, resp)
 	}
 }

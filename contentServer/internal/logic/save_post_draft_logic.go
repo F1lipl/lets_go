@@ -26,7 +26,7 @@ func NewSavePostDraftLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Sav
 	}
 }
 
-func (l *SavePostDraftLogic) SavePostDraft(req *types.SavePostDraftRequest) (resp *types.SavePostDraftResponse, err error) {
+func (l *SavePostDraftLogic) SavePostDraft(req *types.SavePostDraftRequest) (data *types.SavePostDraftData, err error) {
 	// todo: add your logic here and delete this line
 
 	return

@@ -5,7 +5,6 @@ package ecode
 
 import (
 	"errors"
-	"net/http"
 )
 
 // Code is independent of the HTTP status code.
@@ -148,33 +147,6 @@ func FromError(err error) Code {
 	}
 
 	return InternalError
-}
-
-// HTTPStatus returns the transport status associated with an application code.
-func HTTPStatus(code Code) int {
-	switch code {
-	case Success:
-		return http.StatusOK
-	case InvalidRequest, InvalidCursor, InvalidPageSize, InvalidPostID,
-		InvalidRequestID, DraftContentInvalid, TagNameInvalid,
-		MediaTypeUnsupported, MediaSizeExceeded:
-		return http.StatusBadRequest
-	case RequestIdentityInvalid:
-		return http.StatusUnauthorized
-	case PostNotVisible:
-		return http.StatusForbidden
-	case PostNotFound, DraftNotFound, RevisionNotFound, MediaAssetNotFound,
-		TagNotFound, RouteDraftNotFound:
-		return http.StatusNotFound
-	case PostAlreadyDeleted, PostOperationNotAllowed, PostNotPublished,
-		DraftVersionConflict, PublishNotAllowed, MediaAssetNotReady,
-		MediaAssetInUse, RouteVersionConflict, PostVersionConflict:
-		return http.StatusConflict
-	case DependencyUnavailable:
-		return http.StatusServiceUnavailable
-	default:
-		return http.StatusInternalServerError
-	}
 }
 
 func normalize(code Code) Code {

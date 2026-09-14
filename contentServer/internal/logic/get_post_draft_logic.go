@@ -26,7 +26,7 @@ func NewGetPostDraftLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetP
 	}
 }
 
-func (l *GetPostDraftLogic) GetPostDraft(req *types.GetPostDraftRequest) (resp *types.GetPostDraftResponse, err error) {
+func (l *GetPostDraftLogic) GetPostDraft(req *types.GetPostDraftRequest) (data *types.GetPostDraftData, err error) {
 	// todo: add your logic here and delete this line
 
 	return

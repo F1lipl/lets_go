@@ -28,7 +28,7 @@ func NewPublishPostLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Publi
 	}
 }
 
-func (l *PublishPostLogic) PublishPost(req *types.PublishPostRequest) (resp *types.PublishPostResponse, err error) {
+func (l *PublishPostLogic) PublishPost(req *types.PublishPostRequest) (data *types.PublishPostData, err error) {
 	// todo: add your logic here and delete this line
 	if _, err := identity.FromContext(l.ctx); err != nil {
 		return nil, ecode.Wrap(ecode.RequestIdentityInvalid, err)

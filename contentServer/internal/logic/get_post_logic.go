@@ -26,7 +26,7 @@ func NewGetPostLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetPostLo
 	}
 }
 
-func (l *GetPostLogic) GetPost(req *types.GetPostRequest) (resp *types.GetPostResponse, err error) {
+func (l *GetPostLogic) GetPost(req *types.GetPostRequest) (data *types.GetPostData, err error) {
 	// todo: add your logic here and delete this line
 
 	return

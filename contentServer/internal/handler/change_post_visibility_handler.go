@@ -21,11 +21,7 @@ func ChangePostVisibilityHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := logic.NewChangePostVisibilityLogic(r.Context(), svcCtx)
-		resp, err := l.ChangePostVisibility(&req)
-		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
-		}
+		data, err := l.ChangePostVisibility(&req)
+		writeBusinessResponse(r.Context(), w, data, err)
 	}
 }

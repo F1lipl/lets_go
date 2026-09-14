@@ -26,7 +26,7 @@ func NewListPostsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListPos
 	}
 }
 
-func (l *ListPostsLogic) ListPosts(req *types.ListPostsRequest) (resp *types.ListPostsResponse, err error) {
+func (l *ListPostsLogic) ListPosts(req *types.ListPostsRequest) (data *types.ListPostsData, err error) {
 	// todo: add your logic here and delete this line
 
 	return

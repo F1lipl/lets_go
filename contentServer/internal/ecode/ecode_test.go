@@ -2,7 +2,6 @@ package ecode
 
 import (
 	"errors"
-	"net/http"
 	"testing"
 )
 
@@ -52,25 +51,5 @@ func TestWrappedErrorPreservesCause(t *testing.T) {
 	}
 	if !errors.Is(err, cause) {
 		t.Fatal("wrapped error does not preserve cause")
-	}
-}
-
-func TestHTTPStatus(t *testing.T) {
-	tests := []struct {
-		code Code
-		want int
-	}{
-		{Success, http.StatusOK},
-		{InvalidRequest, http.StatusBadRequest},
-		{PostNotFound, http.StatusNotFound},
-		{DraftVersionConflict, http.StatusConflict},
-		{DependencyUnavailable, http.StatusServiceUnavailable},
-		{InternalError, http.StatusInternalServerError},
-	}
-
-	for _, tt := range tests {
-		if got := HTTPStatus(tt.code); got != tt.want {
-			t.Fatalf("HTTPStatus(%d) = %d, want %d", tt.code, got, tt.want)
-		}
 	}
 }

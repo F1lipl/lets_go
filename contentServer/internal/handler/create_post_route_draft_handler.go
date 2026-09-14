@@ -21,11 +21,7 @@ func CreatePostRouteDraftHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := logic.NewCreatePostRouteDraftLogic(r.Context(), svcCtx)
-		resp, err := l.CreatePostRouteDraft(&req)
-		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
-		}
+		data, err := l.CreatePostRouteDraft(&req)
+		writeBusinessResponse(r.Context(), w, data, err)
 	}
 }

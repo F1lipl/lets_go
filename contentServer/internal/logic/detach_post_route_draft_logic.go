@@ -26,7 +26,7 @@ func NewDetachPostRouteDraftLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *DetachPostRouteDraftLogic) DetachPostRouteDraft(req *types.DetachPostRouteDraftRequest) (resp *types.DetachPostRouteDraftResponse, err error) {
+func (l *DetachPostRouteDraftLogic) DetachPostRouteDraft(req *types.DetachPostRouteDraftRequest) (data *types.DetachPostRouteDraftData, err error) {
 	// todo: add your logic here and delete this line
 
 	return

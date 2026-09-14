@@ -26,7 +26,7 @@ func NewCreateImageUploadLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	}
 }
 
-func (l *CreateImageUploadLogic) CreateImageUpload(req *types.CreateImageUploadRequest) (resp *types.CreateImageUploadResponse, err error) {
+func (l *CreateImageUploadLogic) CreateImageUpload(req *types.CreateImageUploadRequest) (data *types.CreateImageUploadData, err error) {
 	// todo: add your logic here and delete this line
 
 	return

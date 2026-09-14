@@ -42,3 +42,23 @@ go build -o bin/contentserver.exe .
 ```
 
 接口定义位于 `api/content.api`，服务配置位于 `etc/content-api.yaml`。
+
+## 业务响应约定
+
+业务接口统一返回一个信封，具体业务字段只出现在 `data` 中：
+
+```json
+{
+  "errorCode": 0,
+  "message": "操作成功",
+  "data": {},
+  "requestId": ""
+}
+```
+
+分层约定：
+
+- `internal/logic` 只返回对应的 `*Data` 和 `error`，不组装响应码或提示文本。
+- `internal/handler` 解析请求并调用 `writeBusinessResponse`。
+- `internal/httpresponse` 统一生成成功或失败回包，并完成 HTTP 状态映射。
+- 新增业务接口时必须分别定义 `XxxData` 和 `XxxResponse`；运行状态接口不使用业务信封。

@@ -21,11 +21,7 @@ func BatchGetPostCardsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := logic.NewBatchGetPostCardsLogic(r.Context(), svcCtx)
-		resp, err := l.BatchGetPostCards(&req)
-		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
-		}
+		data, err := l.BatchGetPostCards(&req)
+		writeBusinessResponse(r.Context(), w, data, err)
 	}
 }

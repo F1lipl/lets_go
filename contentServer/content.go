@@ -11,12 +11,10 @@ import (
 
 	"contentserver/internal/config"
 	"contentserver/internal/handler"
-	"contentserver/internal/httpresponse"
 	"contentserver/internal/svc"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/rest"
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 var configFile = flag.String("f", "etc/content-api.yaml", "the config file")
@@ -32,9 +30,6 @@ func main() {
 	if strings.TrimSpace(c.Auth.AccessSecret) == "" {
 		log.Fatal("CONTENT_ACCESS_SECRET must be configured")
 	}
-
-	httpx.SetErrorHandlerCtx(httpresponse.ErrorHandler)
-	httpx.SetOkHandler(httpresponse.SuccessHandler)
 
 	server := rest.MustNewServer(c.RestConf)
 	defer server.Stop()

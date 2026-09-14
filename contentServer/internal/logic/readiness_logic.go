@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	"contentserver/internal/ecode"
 	"contentserver/internal/svc"
 	"contentserver/internal/types"
 
@@ -35,10 +34,7 @@ func (l *ReadinessLogic) Readiness() (resp *types.ReadinessResponse, err error) 
 
 	var probe int
 	if err := l.svcCtx.DB.QueryRowCtx(ctx, &probe, "SELECT 1"); err != nil {
-		return nil, ecode.Wrap(
-			ecode.DatabaseError,
-			fmt.Errorf("database readiness check failed: %w", err),
-		)
+		return nil, fmt.Errorf("database readiness check failed: %w", err)
 	}
 
 	return &types.ReadinessResponse{

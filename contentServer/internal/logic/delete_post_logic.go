@@ -26,7 +26,7 @@ func NewDeletePostLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Delete
 	}
 }
 
-func (l *DeletePostLogic) DeletePost(req *types.DeletePostRequest) (resp *types.DeletePostResponse, err error) {
+func (l *DeletePostLogic) DeletePost(req *types.DeletePostRequest) (data *types.DeletePostData, err error) {
 	// todo: add your logic here and delete this line
 
 	return

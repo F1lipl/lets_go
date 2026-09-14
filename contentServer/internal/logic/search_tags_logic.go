@@ -26,7 +26,7 @@ func NewSearchTagsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Search
 	}
 }
 
-func (l *SearchTagsLogic) SearchTags(req *types.SearchTagsRequest) (resp *types.SearchTagsResponse, err error) {
+func (l *SearchTagsLogic) SearchTags(req *types.SearchTagsRequest) (data *types.SearchTagsData, err error) {
 	// todo: add your logic here and delete this line
 
 	return

@@ -21,11 +21,7 @@ func GetPostHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := logic.NewGetPostLogic(r.Context(), svcCtx)
-		resp, err := l.GetPost(&req)
-		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
-		}
+		data, err := l.GetPost(&req)
+		writeBusinessResponse(r.Context(), w, data, err)
 	}
 }

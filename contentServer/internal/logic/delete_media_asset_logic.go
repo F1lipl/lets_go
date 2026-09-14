@@ -26,7 +26,7 @@ func NewDeleteMediaAssetLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	}
 }
 
-func (l *DeleteMediaAssetLogic) DeleteMediaAsset(req *types.DeleteMediaAssetRequest) (resp *types.DeleteMediaAssetResponse, err error) {
+func (l *DeleteMediaAssetLogic) DeleteMediaAsset(req *types.DeleteMediaAssetRequest) (data *types.DeleteMediaAssetData, err error) {
 	// todo: add your logic here and delete this line
 
 	return

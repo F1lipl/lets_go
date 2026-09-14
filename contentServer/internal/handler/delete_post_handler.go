@@ -21,11 +21,7 @@ func DeletePostHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := logic.NewDeletePostLogic(r.Context(), svcCtx)
-		resp, err := l.DeletePost(&req)
-		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
-		}
+		data, err := l.DeletePost(&req)
+		writeBusinessResponse(r.Context(), w, data, err)
 	}
 }
