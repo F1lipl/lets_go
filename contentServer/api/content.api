@@ -97,6 +97,8 @@ type CreatePostRequest {
 }
 
 type CreatePostResponse {
+	ErrorCode    int    `json:"errorCode"`
+	Message      string `json:"message"`
 	PostId       string `json:"postId"`
 	Status       string `json:"status"`
 	PostVersion  uint64 `json:"postVersion"`
@@ -109,6 +111,8 @@ type GetPostDraftRequest {
 }
 
 type GetPostDraftResponse {
+	ErrorCode        int              `json:"errorCode"`
+	Message          string           `json:"message"`
 	PostId           string           `json:"postId"`
 	Status           string           `json:"status"`
 	Visibility       string           `json:"visibility"`
@@ -140,6 +144,8 @@ type SavePostDraftRequest {
 }
 
 type SavePostDraftResponse {
+	ErrorCode    int    `json:"errorCode"`
+	Message      string `json:"message"`
 	PostId       string `json:"postId"`
 	DraftVersion uint64 `json:"draftVersion"`
 	UpdatedAt    string `json:"updatedAt"`
@@ -152,6 +158,8 @@ type CreatePostRouteDraftRequest {
 }
 
 type CreatePostRouteDraftResponse {
+	ErrorCode    int    `json:"errorCode"`
+	Message      string `json:"message"`
 	PostId       string `json:"postId"`
 	RouteDraftId string `json:"routeDraftId"`
 	RouteVersion uint64 `json:"routeVersion"`
@@ -166,6 +174,8 @@ type DetachPostRouteDraftRequest {
 }
 
 type DetachPostRouteDraftResponse {
+	ErrorCode    int    `json:"errorCode"`
+	Message      string `json:"message"`
 	PostId       string `json:"postId"`
 	DraftVersion uint64 `json:"draftVersion"`
 	UpdatedAt    string `json:"updatedAt"`
@@ -180,6 +190,8 @@ type PublishPostRequest {
 }
 
 type PublishPostResponse {
+	ErrorCode       int    `json:"errorCode"`
+	Message         string `json:"message"`
 	PostId          string `json:"postId"`
 	RevisionId      string `json:"revisionId"`
 	RevisionNumber  uint64 `json:"revisionNumber"`
@@ -197,6 +209,8 @@ type ChangePostVisibilityRequest {
 }
 
 type ChangePostVisibilityResponse {
+	ErrorCode   int    `json:"errorCode"`
+	Message     string `json:"message"`
 	PostId      string `json:"postId"`
 	Visibility  string `json:"visibility"`
 	PostVersion uint64 `json:"postVersion"`
@@ -210,6 +224,8 @@ type DeletePostRequest {
 }
 
 type DeletePostResponse {
+	ErrorCode   int    `json:"errorCode"`
+	Message     string `json:"message"`
 	PostId      string `json:"postId"`
 	Status      string `json:"status"`
 	PostVersion uint64 `json:"postVersion"`
@@ -221,6 +237,8 @@ type GetPostRequest {
 }
 
 type GetPostResponse {
+	ErrorCode        int                  `json:"errorCode"`
+	Message          string               `json:"message"`
 	PostId           string               `json:"postId"`
 	AuthorId         string               `json:"authorId"`
 	Status           string               `json:"status"`
@@ -246,14 +264,16 @@ type GetPostResponse {
 
 type ListPostsRequest {
 	Cursor  string `form:"cursor,optional"`
-	Limit   int64  `form:"limit,default=20,range=[1:50]"`
+	Limit   int64  `form:"limit,default=20,range=[1:30]"`
 	TagId   string `form:"tagId,optional"`
 	PlaceId string `form:"placeId,optional"`
 }
 
-type PostListItem {
+type PublishedPostCard {
 	PostId           string               `json:"postId"`
+	RevisionId       string               `json:"revisionId"`
 	AuthorId         string               `json:"authorId"`
+	Visibility       string               `json:"visibility"`
 	Title            string               `json:"title"`
 	Summary          string               `json:"summary"`
 	HasCover         bool                 `json:"hasCover"`
@@ -265,22 +285,25 @@ type PostListItem {
 	LikeCount        uint64               `json:"likeCount"`
 	FavoriteCount    uint64               `json:"favoriteCount"`
 	CommentCount     uint64               `json:"commentCount"`
+	PostVersion      uint64               `json:"postVersion"`
 	PublishedAt      string               `json:"publishedAt"`
 }
 
 type ListPostsResponse {
-	Items      []PostListItem `json:"items"`
-	NextCursor string         `json:"nextCursor,optional"`
-	HasMore    bool           `json:"hasMore"`
+	ErrorCode  int                 `json:"errorCode"`
+	Message    string              `json:"message"`
+	Items      []PublishedPostCard `json:"items"`
+	NextCursor string              `json:"nextCursor,optional"`
+	HasMore    bool                `json:"hasMore"`
 }
 
 type ListMyPostsRequest {
 	Cursor string `form:"cursor,optional"`
-	Limit  int64  `form:"limit,default=20,range=[1:50]"`
+	Limit  int64  `form:"limit,default=20,range=[1:30]"`
 	Status string `form:"status,optional"`
 }
 
-type MyPostListItem {
+type CreatorPostCard {
 	PostId                string         `json:"postId"`
 	Title                 string         `json:"title"`
 	Summary               string         `json:"summary"`
@@ -300,9 +323,21 @@ type MyPostListItem {
 }
 
 type ListMyPostsResponse {
-	Items      []MyPostListItem `json:"items"`
-	NextCursor string           `json:"nextCursor,optional"`
-	HasMore    bool             `json:"hasMore"`
+	ErrorCode  int               `json:"errorCode"`
+	Message    string            `json:"message"`
+	Items      []CreatorPostCard `json:"items"`
+	NextCursor string            `json:"nextCursor,optional"`
+	HasMore    bool              `json:"hasMore"`
+}
+
+type BatchGetPostCardsRequest {
+	PostIds []string `json:"postIds"`
+}
+
+type BatchGetPostCardsResponse {
+	ErrorCode int                 `json:"errorCode"`
+	Message   string              `json:"message"`
+	Items     []PublishedPostCard `json:"items"`
 }
 
 type CreateImageUploadRequest {
@@ -314,6 +349,8 @@ type CreateImageUploadRequest {
 }
 
 type CreateImageUploadResponse {
+	ErrorCode int    `json:"errorCode"`
+	Message   string `json:"message"`
 	AssetId   string `json:"assetId"`
 	Status    string `json:"status"`
 	UploadUrl string `json:"uploadUrl"`
@@ -326,7 +363,9 @@ type CompleteImageUploadRequest {
 }
 
 type CompleteImageUploadResponse {
-	Asset MediaAssetView `json:"asset"`
+	ErrorCode int            `json:"errorCode"`
+	Message   string         `json:"message"`
+	Asset     MediaAssetView `json:"asset"`
 }
 
 type DeleteMediaAssetRequest {
@@ -335,6 +374,8 @@ type DeleteMediaAssetRequest {
 }
 
 type DeleteMediaAssetResponse {
+	ErrorCode int    `json:"errorCode"`
+	Message   string `json:"message"`
 	AssetId   string `json:"assetId"`
 	Status    string `json:"status"`
 	DeletedAt string `json:"deletedAt"`
@@ -346,7 +387,9 @@ type SearchTagsRequest {
 }
 
 type SearchTagsResponse {
-	Items []PostTag `json:"items"`
+	ErrorCode int       `json:"errorCode"`
+	Message   string    `json:"message"`
+	Items     []PostTag `json:"items"`
 }
 
 @server (
@@ -376,6 +419,9 @@ service content-api {
 service content-api {
 	@handler CreatePost
 	post /posts (CreatePostRequest) returns (CreatePostResponse)
+
+	@handler BatchGetPostCards
+	post /post-cards/batch (BatchGetPostCardsRequest) returns (BatchGetPostCardsResponse)
 
 	@handler CreateImageUpload
 	post /media/assets (CreateImageUploadRequest) returns (CreateImageUploadResponse)

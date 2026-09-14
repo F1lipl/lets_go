@@ -12,16 +12,16 @@ import (
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func DeleteMediaAssetHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+func BatchGetPostCardsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.DeleteMediaAssetRequest
+		var req types.BatchGetPostCardsRequest
 		if err := httpx.Parse(r, &req); err != nil {
 			writeInvalidRequest(r.Context(), w, err)
 			return
 		}
 
-		l := logic.NewDeleteMediaAssetLogic(r.Context(), svcCtx)
-		resp, err := l.DeleteMediaAsset(&req)
+		l := logic.NewBatchGetPostCardsLogic(r.Context(), svcCtx)
+		resp, err := l.BatchGetPostCards(&req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

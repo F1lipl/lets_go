@@ -16,7 +16,7 @@ func GetPostDraftHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.GetPostDraftRequest
 		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
+			writeInvalidRequest(r.Context(), w, err)
 			return
 		}
 

@@ -67,6 +67,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				Method:  http.MethodPost,
+				Path:    "/post-cards/batch",
+				Handler: BatchGetPostCardsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
 				Path:    "/posts",
 				Handler: CreatePostHandler(serverCtx),
 			},

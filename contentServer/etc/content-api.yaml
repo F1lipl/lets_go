@@ -1,4 +1,4 @@
-Name: userServer-api
+Name: content-server-api
 Host: 0.0.0.0
 Port: 8888
 
@@ -27,7 +27,7 @@ Redis:
   Type: node
   Pass: "123456"
 
-DataSource: "root:123456@tcp(127.0.0.1:3309)/user_server?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai"
+DataSource: "root:123456@tcp(127.0.0.1:3309)/content_server?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai"
 
 
 Auth:
