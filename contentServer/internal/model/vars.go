@@ -1,5 +1,12 @@
 package model
 
-import "github.com/zeromicro/go-zero/core/stores/sqlx"
+import (
+	"errors"
 
-var ErrNotFound = sqlx.ErrNotFound
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+)
+
+var (
+	ErrNotFound        = sqlx.ErrNotFound
+	ErrVersionConflict = errors.New("version conflict")
+)

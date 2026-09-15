@@ -49,7 +49,7 @@ ContentServer 仅管理普通图文帖子。旅行方案、地点节点、交通
 TripServer 独立管理。内容服务没有路线引用，不需要旅行服务参与保存或发布。
 当前仍以图片和文本为 MVP；本次没有增加视频上传或处理功能。
 
-接口契约版本为 4.1，URL 前缀仍为 /api/v1。以下是破坏性调整，调用方需要同时更新：
+接口契约版本为 4.2，URL 前缀仍为 /api/v1。以下是破坏性调整，调用方需要同时更新：
 
 - 删除创建、解除路线草稿的两个 /posts/:postId/route-draft 接口。
 - 创建、保存、详情和卡片移除 presentationMode、hasRoute、route 等字段。
@@ -60,7 +60,9 @@ TripServer 独立管理。内容服务没有路线引用，不需要旅行服务
 - 保存草稿删除 saveRequestId；使用 postId + expectedDraftVersion 做条件更新。
   旧版本重试与其他编辑导致的冲突统一返回 DraftVersionConflict（800302 / HTTP 409）。
   客户端保留本地编辑内容，重新获取草稿后再处理冲突，不自动替换版本号覆盖。
-  创建帖子、发布和申请图片上传的请求标识继续保留。
+- 创建、发布、可见性修改、删除和图片操作不再接收业务 requestId；
+  Post 和草稿更新使用对应的 expectedVersion，图片状态变化使用当前状态作为更新条件。
+- 响应信封里的 requestId 由服务端生成，只用于定位一次调用，不参与业务判断。
 
 SavePostDraftLogic 当前仍是模板；以上描述的是接口契约。
 实现保存时必须在同一事务中按预期版本更新草稿并维护图片引用，
@@ -86,6 +88,8 @@ post_card_projection 的路线列与展示模式，并删除 post_revision_place
 其余 13 张业务表保留。schema_migration 是额外的迁移记录表，不属于业务领域。
 004_remove_draft_save_request_id.sql 删除 post_draft.last_save_request_id，
 保留草稿内容和 draft_version；已有请求标识只在迁移前备份中保留。
+005_remove_operation_request_ids.sql 删除 post.create_request_id、
+post_revision.publish_request_id、media_asset.upload_request_id 及对应唯一索引。
 已移除错误码的数字继续保留，不能分配给其他含义。
 
 迁移脚本在执行前备份到 .runtime/mysql/backups，记录文件名称和校验值；

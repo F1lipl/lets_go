@@ -4,7 +4,7 @@ info (
 	title:   "Content Service"
 	desc:    "Independent text and image posts; travel plans belong to TripServer"
 	author:  "contentServer"
-	version: "4.1"
+	version: "4.2"
 )
 
 type HealthResponse {
@@ -65,7 +65,6 @@ type PostTag {
 }
 
 type CreatePostRequest {
-	RequestId  string       `json:"requestId"`
 	Visibility string       `json:"visibility"`
 	Title      string       `json:"title,optional"`
 	Summary    string       `json:"summary,optional"`
@@ -144,7 +143,6 @@ type PublishPostRequest {
 	PostId               string `path:"postId"`
 	ExpectedPostVersion  uint64 `json:"expectedPostVersion"`
 	ExpectedDraftVersion uint64 `json:"expectedDraftVersion"`
-	PublishRequestId     string `json:"publishRequestId"`
 }
 
 type PublishPostData {
@@ -165,7 +163,6 @@ type PublishPostResponse {
 
 type ChangePostVisibilityRequest {
 	PostId              string `path:"postId"`
-	RequestId           string `json:"requestId"`
 	Visibility          string `json:"visibility"`
 	ExpectedPostVersion uint64 `json:"expectedPostVersion"`
 }
@@ -186,7 +183,6 @@ type ChangePostVisibilityResponse {
 
 type DeletePostRequest {
 	PostId              string `path:"postId"`
-	RequestId           string `form:"requestId"`
 	ExpectedPostVersion uint64 `form:"expectedPostVersion"`
 }
 
@@ -323,7 +319,6 @@ type BatchGetPostCardsResponse {
 }
 
 type CreateImageUploadRequest {
-	RequestId   string `json:"requestId"`
 	FileName    string `json:"fileName"`
 	MimeType    string `json:"mimeType"`
 	FileSize    uint64 `json:"fileSize"`
@@ -345,8 +340,7 @@ type CreateImageUploadResponse {
 }
 
 type CompleteImageUploadRequest {
-	AssetId   string `path:"assetId"`
-	RequestId string `json:"requestId"`
+	AssetId string `path:"assetId"`
 }
 
 type CompleteImageUploadData {
@@ -361,8 +355,7 @@ type CompleteImageUploadResponse {
 }
 
 type DeleteMediaAssetRequest {
-	AssetId   string `path:"assetId"`
-	RequestId string `form:"requestId"`
+	AssetId string `path:"assetId"`
 }
 
 type DeleteMediaAssetData {
@@ -452,4 +445,3 @@ service content-api {
 	@handler DeletePost
 	delete /posts/:postId (DeletePostRequest) returns (DeletePostResponse)
 }
-

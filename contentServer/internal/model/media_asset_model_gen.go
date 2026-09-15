@@ -27,7 +27,6 @@ type (
 	mediaAssetModel interface {
 		Insert(ctx context.Context, data *MediaAsset) (sql.Result, error)
 		FindOne(ctx context.Context, assetId string) (*MediaAsset, error)
-		FindOneByOwnerIdUploadRequestId(ctx context.Context, ownerId string, uploadRequestId string) (*MediaAsset, error)
 		FindOneByStorageProviderBucketNameObjectKey(ctx context.Context, storageProvider string, bucketName string, objectKey string) (*MediaAsset, error)
 		Update(ctx context.Context, data *MediaAsset) error
 		Delete(ctx context.Context, assetId string) error
@@ -41,7 +40,6 @@ type (
 	MediaAsset struct {
 		AssetId         string         `db:"asset_id"`
 		OwnerId         string         `db:"owner_id"`
-		UploadRequestId string         `db:"upload_request_id"`
 		StorageProvider string         `db:"storage_provider"`
 		BucketName      string         `db:"bucket_name"`
 		ObjectKey       string         `db:"object_key"`
@@ -85,20 +83,6 @@ func (m *defaultMediaAssetModel) FindOne(ctx context.Context, assetId string) (*
 	}
 }
 
-func (m *defaultMediaAssetModel) FindOneByOwnerIdUploadRequestId(ctx context.Context, ownerId string, uploadRequestId string) (*MediaAsset, error) {
-	var resp MediaAsset
-	query := fmt.Sprintf("select %s from %s where `owner_id` = ? and `upload_request_id` = ? limit 1", mediaAssetRows, m.table)
-	err := m.conn.QueryRowCtx(ctx, &resp, query, ownerId, uploadRequestId)
-	switch err {
-	case nil:
-		return &resp, nil
-	case sqlx.ErrNotFound:
-		return nil, ErrNotFound
-	default:
-		return nil, err
-	}
-}
-
 func (m *defaultMediaAssetModel) FindOneByStorageProviderBucketNameObjectKey(ctx context.Context, storageProvider string, bucketName string, objectKey string) (*MediaAsset, error) {
 	var resp MediaAsset
 	query := fmt.Sprintf("select %s from %s where `storage_provider` = ? and `bucket_name` = ? and `object_key` = ? limit 1", mediaAssetRows, m.table)
@@ -114,14 +98,14 @@ func (m *defaultMediaAssetModel) FindOneByStorageProviderBucketNameObjectKey(ctx
 }
 
 func (m *defaultMediaAssetModel) Insert(ctx context.Context, data *MediaAsset) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, mediaAssetRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.AssetId, data.OwnerId, data.UploadRequestId, data.StorageProvider, data.BucketName, data.ObjectKey, data.MimeType, data.FileSize, data.Width, data.Height, data.ContentHash, data.Status, data.FailureCode, data.DeletedAt)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, mediaAssetRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.AssetId, data.OwnerId, data.StorageProvider, data.BucketName, data.ObjectKey, data.MimeType, data.FileSize, data.Width, data.Height, data.ContentHash, data.Status, data.FailureCode, data.DeletedAt)
 	return ret, err
 }
 
 func (m *defaultMediaAssetModel) Update(ctx context.Context, newData *MediaAsset) error {
 	query := fmt.Sprintf("update %s set %s where `asset_id` = ?", m.table, mediaAssetRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, newData.OwnerId, newData.UploadRequestId, newData.StorageProvider, newData.BucketName, newData.ObjectKey, newData.MimeType, newData.FileSize, newData.Width, newData.Height, newData.ContentHash, newData.Status, newData.FailureCode, newData.DeletedAt, newData.AssetId)
+	_, err := m.conn.ExecCtx(ctx, query, newData.OwnerId, newData.StorageProvider, newData.BucketName, newData.ObjectKey, newData.MimeType, newData.FileSize, newData.Width, newData.Height, newData.ContentHash, newData.Status, newData.FailureCode, newData.DeletedAt, newData.AssetId)
 	return err
 }
 

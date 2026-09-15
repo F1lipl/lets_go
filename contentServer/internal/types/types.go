@@ -27,7 +27,6 @@ type ChangePostVisibilityData struct {
 
 type ChangePostVisibilityRequest struct {
 	PostId              string `path:"postId"`
-	RequestId           string `json:"requestId"`
 	Visibility          string `json:"visibility"`
 	ExpectedPostVersion uint64 `json:"expectedPostVersion"`
 }
@@ -44,8 +43,7 @@ type CompleteImageUploadData struct {
 }
 
 type CompleteImageUploadRequest struct {
-	AssetId   string `path:"assetId"`
-	RequestId string `json:"requestId"`
+	AssetId string `path:"assetId"`
 }
 
 type CompleteImageUploadResponse struct {
@@ -91,7 +89,6 @@ type CreateImageUploadData struct {
 }
 
 type CreateImageUploadRequest struct {
-	RequestId   string `json:"requestId"`
 	FileName    string `json:"fileName"`
 	MimeType    string `json:"mimeType"`
 	FileSize    uint64 `json:"fileSize"`
@@ -114,7 +111,6 @@ type CreatePostData struct {
 }
 
 type CreatePostRequest struct {
-	RequestId  string       `json:"requestId"`
 	Visibility string       `json:"visibility"`
 	Title      string       `json:"title,optional"`
 	Summary    string       `json:"summary,optional"`
@@ -153,8 +149,7 @@ type DeleteMediaAssetData struct {
 }
 
 type DeleteMediaAssetRequest struct {
-	AssetId   string `path:"assetId"`
-	RequestId string `form:"requestId"`
+	AssetId string `path:"assetId"`
 }
 
 type DeleteMediaAssetResponse struct {
@@ -173,7 +168,6 @@ type DeletePostData struct {
 
 type DeletePostRequest struct {
 	PostId              string `path:"postId"`
-	RequestId           string `form:"requestId"`
 	ExpectedPostVersion uint64 `form:"expectedPostVersion"`
 }
 
@@ -318,7 +312,6 @@ type PublishPostRequest struct {
 	PostId               string `path:"postId"`
 	ExpectedPostVersion  uint64 `json:"expectedPostVersion"`
 	ExpectedDraftVersion uint64 `json:"expectedDraftVersion"`
-	PublishRequestId     string `json:"publishRequestId"`
 }
 
 type PublishPostResponse struct {

@@ -30,7 +30,7 @@ func TestContentModelsAgainstMySQL(t *testing.T) {
 	}
 	defer db.Close()
 	var obsolete int
-	err = conn.QueryRowCtx(ctx, &obsolete, "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND (COLUMN_NAME LIKE 'route\\_%' OR COLUMN_NAME='presentation_mode' OR TABLE_NAME='post_revision_place')")
+	err = conn.QueryRowCtx(ctx, &obsolete, "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND (COLUMN_NAME LIKE 'route\\_%' OR COLUMN_NAME='presentation_mode' OR COLUMN_NAME IN ('create_request_id','publish_request_id','upload_request_id') OR TABLE_NAME='post_revision_place')")
 	if err != nil || obsolete != 0 {
 		t.Fatalf("obsolete schema fields = %d, error = %v", obsolete, err)
 	}
@@ -40,7 +40,7 @@ func TestContentModelsAgainstMySQL(t *testing.T) {
 	err = conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		tx := sqlx.NewSqlConnFromSession(session)
 		_, err := NewPostModel(tx).Insert(ctx, &Post{
-			PostId: postID, AuthorId: authorID, CreateRequestId: uuid.NewString(),
+			PostId: postID, AuthorId: authorID,
 			LifecycleStatus: 1, Visibility: 3, AvailabilityStatus: 1, PostVersion: 1,
 		})
 		if err != nil {
@@ -56,9 +56,12 @@ func TestContentModelsAgainstMySQL(t *testing.T) {
 		if _, err := drafts.Insert(ctx, draft); err != nil {
 			return fmt.Errorf("insert draft: %w", err)
 		}
-		draft.Title, draft.DraftVersion = "Updated title", 2
-		if err := drafts.Update(ctx, draft); err != nil {
+		draft.Title = "Updated title"
+		if err := drafts.UpdateWithVersion(ctx, draft, 1); err != nil {
 			return fmt.Errorf("update draft: %w", err)
+		}
+		if err := drafts.UpdateWithVersion(ctx, draft, 1); !errors.Is(err, ErrVersionConflict) {
+			return fmt.Errorf("stale draft update error = %v, want %v", err, ErrVersionConflict)
 		}
 		gotDraft, err := drafts.FindOne(ctx, postID)
 		if err != nil {
@@ -71,15 +74,15 @@ func TestContentModelsAgainstMySQL(t *testing.T) {
 		now := time.Now().UTC().Truncate(time.Millisecond)
 		revision := &PostRevision{
 			RevisionId: revisionID, PostId: postID, RevisionNumber: 1,
-			SourceDraftVersion: 2, PublishRequestId: uuid.NewString(),
-			Title: draft.Title, Summary: draft.Summary, DocumentSchemaVersion: 1,
+			SourceDraftVersion: 2,
+			Title:              draft.Title, Summary: draft.Summary, DocumentSchemaVersion: 1,
 			DocumentJson: draft.DocumentJson, PlainText: draft.PlainText,
 			BlockCount: 1, PublishedAt: now,
 		}
 		if _, err := revisions.Insert(ctx, revision); err != nil {
 			return fmt.Errorf("insert revision: %w", err)
 		}
-		gotRevision, err := revisions.FindOneByPostIdPublishRequestId(ctx, postID, revision.PublishRequestId)
+		gotRevision, err := revisions.FindOneByPostIdRevisionNumber(ctx, postID, revision.RevisionNumber)
 		if err != nil {
 			return fmt.Errorf("read revision: %w", err)
 		}

@@ -5,10 +5,10 @@ import (
 	"contentserver/internal/model"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"time"
 
-	"github.com/segmentio/encoding/json"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -92,10 +92,14 @@ func (postDraft *postDraftRepository) SaveDraft(ctx context.Context, draft *doma
 	if err != nil {
 		return err
 	}
-	err = postDraftModel.Update(ctx, newDraft)
+	err = postDraftModel.UpdateWithVersion(ctx, newDraft, expectedVersion)
 	if err != nil {
+		if errors.Is(err, model.ErrVersionConflict) {
+			return domain.ErrDraftVersionConflict
+		}
 		return err
 	}
+	draft.Version = expectedVersion + 1
 	return nil
 	//TODO event
 }
@@ -111,11 +115,4 @@ func (postDraft *postDraftRepository) DeleteDraft(ctx context.Context, id domain
 	}
 	return nil
 	//TODO event
-}
-
-func (postDraft *postDraftRepository) PublishDraft(ctx context.Context, draft *domain.PostDraft) error {
-	if draft.Cover == nil {
-		return errors.New("draft cover is nil")
-	}
-
 }

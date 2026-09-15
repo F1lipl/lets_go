@@ -27,7 +27,6 @@ type (
 	postRevisionModel interface {
 		Insert(ctx context.Context, data *PostRevision) (sql.Result, error)
 		FindOne(ctx context.Context, revisionId string) (*PostRevision, error)
-		FindOneByPostIdPublishRequestId(ctx context.Context, postId string, publishRequestId string) (*PostRevision, error)
 		FindOneByPostIdRevisionNumber(ctx context.Context, postId string, revisionNumber uint64) (*PostRevision, error)
 		Update(ctx context.Context, data *PostRevision) error
 		Delete(ctx context.Context, revisionId string) error
@@ -43,7 +42,6 @@ type (
 		PostId                string          `db:"post_id"`
 		RevisionNumber        uint64          `db:"revision_number"`
 		SourceDraftVersion    uint64          `db:"source_draft_version"`
-		PublishRequestId      string          `db:"publish_request_id"`
 		Title                 string          `db:"title"`
 		Summary               string          `db:"summary"`
 		CoverAssetId          sql.NullString  `db:"cover_asset_id"`
@@ -87,20 +85,6 @@ func (m *defaultPostRevisionModel) FindOne(ctx context.Context, revisionId strin
 	}
 }
 
-func (m *defaultPostRevisionModel) FindOneByPostIdPublishRequestId(ctx context.Context, postId string, publishRequestId string) (*PostRevision, error) {
-	var resp PostRevision
-	query := fmt.Sprintf("select %s from %s where `post_id` = ? and `publish_request_id` = ? limit 1", postRevisionRows, m.table)
-	err := m.conn.QueryRowCtx(ctx, &resp, query, postId, publishRequestId)
-	switch err {
-	case nil:
-		return &resp, nil
-	case sqlx.ErrNotFound:
-		return nil, ErrNotFound
-	default:
-		return nil, err
-	}
-}
-
 func (m *defaultPostRevisionModel) FindOneByPostIdRevisionNumber(ctx context.Context, postId string, revisionNumber uint64) (*PostRevision, error) {
 	var resp PostRevision
 	query := fmt.Sprintf("select %s from %s where `post_id` = ? and `revision_number` = ? limit 1", postRevisionRows, m.table)
@@ -116,14 +100,14 @@ func (m *defaultPostRevisionModel) FindOneByPostIdRevisionNumber(ctx context.Con
 }
 
 func (m *defaultPostRevisionModel) Insert(ctx context.Context, data *PostRevision) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, postRevisionRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.RevisionId, data.PostId, data.RevisionNumber, data.SourceDraftVersion, data.PublishRequestId, data.Title, data.Summary, data.CoverAssetId, data.CoverFocusX, data.CoverFocusY, data.CoverCropStyle, data.DocumentSchemaVersion, data.DocumentJson, data.PlainText, data.BlockCount, data.ImageCount, data.PublishedAt)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, postRevisionRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.RevisionId, data.PostId, data.RevisionNumber, data.SourceDraftVersion, data.Title, data.Summary, data.CoverAssetId, data.CoverFocusX, data.CoverFocusY, data.CoverCropStyle, data.DocumentSchemaVersion, data.DocumentJson, data.PlainText, data.BlockCount, data.ImageCount, data.PublishedAt)
 	return ret, err
 }
 
 func (m *defaultPostRevisionModel) Update(ctx context.Context, newData *PostRevision) error {
 	query := fmt.Sprintf("update %s set %s where `revision_id` = ?", m.table, postRevisionRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, newData.PostId, newData.RevisionNumber, newData.SourceDraftVersion, newData.PublishRequestId, newData.Title, newData.Summary, newData.CoverAssetId, newData.CoverFocusX, newData.CoverFocusY, newData.CoverCropStyle, newData.DocumentSchemaVersion, newData.DocumentJson, newData.PlainText, newData.BlockCount, newData.ImageCount, newData.PublishedAt, newData.RevisionId)
+	_, err := m.conn.ExecCtx(ctx, query, newData.PostId, newData.RevisionNumber, newData.SourceDraftVersion, newData.Title, newData.Summary, newData.CoverAssetId, newData.CoverFocusX, newData.CoverFocusY, newData.CoverCropStyle, newData.DocumentSchemaVersion, newData.DocumentJson, newData.PlainText, newData.BlockCount, newData.ImageCount, newData.PublishedAt, newData.RevisionId)
 	return err
 }
 

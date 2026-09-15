@@ -15,7 +15,7 @@ type (
 	PostDraftModel interface {
 		postDraftModel
 		withSession(session sqlx.Session) PostDraftModel
-		updateWithVersion(ctx context.Context, post *PostDraft, version int64) error
+		UpdateWithVersion(ctx context.Context, post *PostDraft, version uint64) error
 	}
 
 	customPostDraftModel struct {
@@ -34,13 +34,38 @@ func (m *customPostDraftModel) withSession(session sqlx.Session) PostDraftModel 
 	return NewPostDraftModel(sqlx.NewSqlConnFromSession(session))
 }
 
-func (m *customPostDraftModel) updateWithVersion(ctx context.Context, post *PostDraft, version int64) error {
+func (m *customPostDraftModel) UpdateWithVersion(ctx context.Context, post *PostDraft, version uint64) error {
 	query := fmt.Sprintf(
-		`update %s set %s where post_id=? AND draft_version=?`, m.table, postRowsWithPlaceHolder,
+		`update %s set draft_version=draft_version+1, title=?, summary=?, cover_asset_id=?, cover_focus_x=?, cover_focus_y=?, cover_crop_style=?, document_schema_version=?, document_json=?, tag_names_json=?, plain_text=?, block_count=?, image_count=? where post_id=? and draft_version=?`,
+		m.table,
 	)
-	_, err := m.conn.ExecCtx(ctx, query, post.PostId, post.DraftVersion, version)
+	result, err := m.conn.ExecCtx(
+		ctx,
+		query,
+		post.Title,
+		post.Summary,
+		post.CoverAssetId,
+		post.CoverFocusX,
+		post.CoverFocusY,
+		post.CoverCropStyle,
+		post.DocumentSchemaVersion,
+		post.DocumentJson,
+		post.TagNamesJson,
+		post.PlainText,
+		post.BlockCount,
+		post.ImageCount,
+		post.PostId,
+		version,
+	)
 	if err != nil {
 		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrVersionConflict
 	}
 	return nil
 }

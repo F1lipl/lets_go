@@ -98,6 +98,57 @@ func TestWriteErrorMapsDomainError(t *testing.T) {
 	}
 }
 
+func TestWriteErrorMapsCreatePostDomainErrors(t *testing.T) {
+	for _, domainErr := range []error{
+		domain.ErrInvalidPost,
+		domain.ErrDraftPostMismatch,
+	} {
+		recorder := httptest.NewRecorder()
+		WriteError(context.Background(), recorder, domainErr)
+
+		if recorder.Code != http.StatusBadRequest {
+			t.Fatalf("error %v returned status %d, want %d", domainErr, recorder.Code, http.StatusBadRequest)
+		}
+		var body Envelope
+		if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
+			t.Fatalf("decode body: %v", err)
+		}
+		if body.ErrorCode != ecode.InvalidRequest.Int() {
+			t.Fatalf("error %v returned errorCode %d, want %d", domainErr, body.ErrorCode, ecode.InvalidRequest)
+		}
+	}
+}
+
+func TestWriteErrorMapsDeletePostDomainErrors(t *testing.T) {
+	tests := []struct {
+		domainErr  error
+		wantCode   ecode.Code
+		wantStatus int
+	}{
+		{domain.ErrInvalidVersion, ecode.InvalidVersion, http.StatusBadRequest},
+		{domain.ErrPostNotFound, ecode.PostNotFound, http.StatusNotFound},
+		{domain.ErrPostAlreadyDeleted, ecode.PostAlreadyDeleted, http.StatusConflict},
+		{domain.ErrPostOperationNotAllowed, ecode.PostOperationNotAllowed, http.StatusConflict},
+		{domain.ErrPostVersionConflict, ecode.PostVersionConflict, http.StatusConflict},
+	}
+
+	for _, tt := range tests {
+		recorder := httptest.NewRecorder()
+		WriteError(context.Background(), recorder, tt.domainErr)
+
+		if recorder.Code != tt.wantStatus {
+			t.Fatalf("error %v returned status %d, want %d", tt.domainErr, recorder.Code, tt.wantStatus)
+		}
+		var body Envelope
+		if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
+			t.Fatalf("decode body: %v", err)
+		}
+		if body.ErrorCode != tt.wantCode.Int() {
+			t.Fatalf("error %v returned errorCode %d, want %d", tt.domainErr, body.ErrorCode, tt.wantCode)
+		}
+	}
+}
+
 func TestStatusFor(t *testing.T) {
 	tests := []struct {
 		code ecode.Code

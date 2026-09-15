@@ -10,7 +10,8 @@ import (
 // Code is independent of the HTTP status code.
 type Code int
 
-// Retired codes 800109, 800112, 800115 and 800701-800706 remain reserved.
+// Retired codes 800105, 800109, 800112, 800115, 800701-800706,
+// 800802 and 800803 remain reserved.
 const (
 	Success Code = 0
 
@@ -18,7 +19,6 @@ const (
 	InvalidCursor          Code = 800102
 	InvalidPageSize        Code = 800103
 	InvalidPostID          Code = 800104
-	InvalidRequestID       Code = 800105
 	InvalidUserID          Code = 800106
 	InvalidRevisionID      Code = 800107
 	InvalidMediaAssetID    Code = 800108
@@ -58,8 +58,6 @@ const (
 	TagUnavailable Code = 800605
 
 	PostVersionConflict    Code = 800801
-	IdempotencyConflict    Code = 800802
-	RequestInProgress      Code = 800803
 	RequestIdentityInvalid Code = 800901
 
 	InternalError         Code = 900001
@@ -74,7 +72,6 @@ var messages = map[Code]string{
 	InvalidCursor:           "分页游标不正确",
 	InvalidPageSize:         "分页数量不正确",
 	InvalidPostID:           "帖子标识不正确",
-	InvalidRequestID:        "请求标识不正确",
 	InvalidUserID:           "用户标识不正确",
 	InvalidRevisionID:       "发布版本标识不正确",
 	InvalidMediaAssetID:     "图片资源标识不正确",
@@ -108,8 +105,6 @@ var messages = map[Code]string{
 	TooManyTags:             "话题数量超过限制",
 	TagUnavailable:          "话题当前不可用",
 	PostVersionConflict:     "帖子已被更新，请刷新后重试",
-	IdempotencyConflict:     "请求标识已用于其他操作",
-	RequestInProgress:       "相同请求正在处理中",
 	RequestIdentityInvalid:  "当前请求缺少有效的用户信息",
 	InternalError:           "服务暂时不可用",
 	DatabaseError:           "数据处理失败",

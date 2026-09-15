@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type LifecycleStatus uint8
+type LifecycleStatus uint64
 
 const (
 	LifecycleDraft LifecycleStatus = iota + 1
@@ -17,7 +17,7 @@ func (status LifecycleStatus) Valid() bool {
 	return status >= LifecycleDraft && status <= LifecycleDeleted
 }
 
-type Visibility uint8
+type Visibility uint64
 
 const (
 	VisibilityPublic Visibility = iota + 1
@@ -25,27 +25,33 @@ const (
 	VisibilityPrivate
 )
 
+const (
+	AvailabilityNormal  = 1 // 正常
+	AvailabilityPending = 2 // 等待处理
+	AvailabilityHidden  = 3 // 停止展示
+)
+
 func (visibility Visibility) Valid() bool {
 	return visibility >= VisibilityPublic && visibility <= VisibilityPrivate
 }
 
 type Post struct {
-	postID   PostID
-	authorID UserID
+	PostID   PostID
+	AuthorID UserID
 
-	lifecycleStatus LifecycleStatus
-	visibility      Visibility
+	LifecycleStatus LifecycleStatus
+	Visibility      Visibility
 
-	publishedRevisionID *RevisionID
-	revisionSequence    uint64
-	version             uint64
+	PublishedRevisionID *RevisionID
+	RevisionSequence    uint64
+	Version             uint64
 
-	firstPublishedAt *time.Time
-	lastPublishedAt  *time.Time
+	FirstPublishedAt *time.Time
+	LastPublishedAt  *time.Time
 
-	createdAt time.Time
-	updatedAt time.Time
-	deletedAt *time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
 }
 
 func NewPost(authorID UserID, visibility Visibility) (*Post, error) {
@@ -53,7 +59,7 @@ func NewPost(authorID UserID, visibility Visibility) (*Post, error) {
 	if err != nil {
 		return nil, err
 	}
-	if visibility.Valid() {
+	if !visibility.Valid() {
 		return nil, ErrInvalidVisibility
 	}
 	if authorID.IsZero() {
@@ -61,24 +67,17 @@ func NewPost(authorID UserID, visibility Visibility) (*Post, error) {
 	}
 	now := time.Now()
 	return &Post{
-		postID:              postId,
-		authorID:            authorID,
-		lifecycleStatus:     LifecycleDraft,
-		visibility:          visibility,
-		publishedRevisionID: nil,
-		revisionSequence:    0,
-		version:             1,
-		firstPublishedAt:    nil,
-		lastPublishedAt:     nil,
-		createdAt:           now,
-		updatedAt:           now,
-		deletedAt:           nil,
+		PostID:              postId,
+		AuthorID:            authorID,
+		LifecycleStatus:     LifecycleDraft,
+		Visibility:          visibility,
+		PublishedRevisionID: nil,
+		RevisionSequence:    0,
+		Version:             1,
+		FirstPublishedAt:    nil,
+		LastPublishedAt:     nil,
+		CreatedAt:           now,
+		UpdatedAt:           now,
+		DeletedAt:           nil,
 	}, nil
-}
-
-func (post *Post) GetID() PostID {
-	return post.postID
-}
-func (post *Post) GetAuthorID() UserID {
-	return post.authorID
 }

@@ -12,7 +12,7 @@ if (-not $DataSource) {
 $modelDataSource = $DataSource.Split('?')[0]
 Push-Location $projectDir
 try {
-    go tool goctl model mysql datasource --url $modelDataSource --table "post_draft,post_revision,post_card_projection" --dir internal/model --style go_zero
+    go tool goctl model mysql datasource --url $modelDataSource --table "post,post_draft,post_revision,post_card_projection,media_asset" --dir internal/model --style go_zero
     if ($LASTEXITCODE -ne 0) { throw "Model generation failed" }
 } finally {
     Pop-Location

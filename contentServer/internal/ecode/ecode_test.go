@@ -8,7 +8,7 @@ import (
 func TestCodesAreUniqueAndHaveMessages(t *testing.T) {
 	codes := []Code{
 		Success,
-		InvalidRequest, InvalidCursor, InvalidPageSize, InvalidPostID, InvalidRequestID,
+		InvalidRequest, InvalidCursor, InvalidPageSize, InvalidPostID,
 		InvalidUserID, InvalidRevisionID, InvalidMediaAssetID,
 		InvalidVisibility, InvalidLifecycleStatus,
 		InvalidVersion, InvalidBatchPostIDs,
@@ -19,7 +19,7 @@ func TestCodesAreUniqueAndHaveMessages(t *testing.T) {
 		MediaUploadExpired, MediaUploadIncomplete, MediaHashMismatch, MediaProcessingFailed,
 		TagNotFound, TagNameInvalid, InvalidTagID, TooManyTags, TagUnavailable,
 
-		PostVersionConflict, IdempotencyConflict, RequestInProgress, RequestIdentityInvalid,
+		PostVersionConflict, RequestIdentityInvalid,
 		InternalError, DatabaseError, CacheError, DependencyUnavailable,
 	}
 

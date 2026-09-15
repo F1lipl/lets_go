@@ -75,7 +75,9 @@ func newPostDraft(id PostID, title string, summary string, cover *DraftCover, do
 		Title:     title,
 		Summary:   summary,
 		Cover:     cover,
+		Document:  document,
 		TagNames:  tagName,
+		Version:   1,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}, nil

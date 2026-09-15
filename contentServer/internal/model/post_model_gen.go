@@ -27,7 +27,6 @@ type (
 	postModel interface {
 		Insert(ctx context.Context, data *Post) (sql.Result, error)
 		FindOne(ctx context.Context, postId string) (*Post, error)
-		FindOneByAuthorIdCreateRequestId(ctx context.Context, authorId string, createRequestId string) (*Post, error)
 		Update(ctx context.Context, data *Post) error
 		Delete(ctx context.Context, postId string) error
 	}
@@ -40,7 +39,6 @@ type (
 	Post struct {
 		PostId              string         `db:"post_id"`
 		AuthorId            string         `db:"author_id"`
-		CreateRequestId     string         `db:"create_request_id"`
 		LifecycleStatus     uint64         `db:"lifecycle_status"`    // 1 draft, 2 publishing, 3 published, 4 deleted
 		Visibility          uint64         `db:"visibility"`          // 1 public, 2 followers, 3 private
 		AvailabilityStatus  uint64         `db:"availability_status"` // 1 normal, 2 pending, 3 hidden
@@ -81,29 +79,15 @@ func (m *defaultPostModel) FindOne(ctx context.Context, postId string) (*Post, e
 	}
 }
 
-func (m *defaultPostModel) FindOneByAuthorIdCreateRequestId(ctx context.Context, authorId string, createRequestId string) (*Post, error) {
-	var resp Post
-	query := fmt.Sprintf("select %s from %s where `author_id` = ? and `create_request_id` = ? limit 1", postRows, m.table)
-	err := m.conn.QueryRowCtx(ctx, &resp, query, authorId, createRequestId)
-	switch err {
-	case nil:
-		return &resp, nil
-	case sqlx.ErrNotFound:
-		return nil, ErrNotFound
-	default:
-		return nil, err
-	}
-}
-
 func (m *defaultPostModel) Insert(ctx context.Context, data *Post) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, postRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.PostId, data.AuthorId, data.CreateRequestId, data.LifecycleStatus, data.Visibility, data.AvailabilityStatus, data.PublishedRevisionId, data.PostVersion, data.FirstPublishedAt, data.LastPublishedAt, data.DeletedAt)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, postRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.PostId, data.AuthorId, data.LifecycleStatus, data.Visibility, data.AvailabilityStatus, data.PublishedRevisionId, data.PostVersion, data.FirstPublishedAt, data.LastPublishedAt, data.DeletedAt)
 	return ret, err
 }
 
-func (m *defaultPostModel) Update(ctx context.Context, newData *Post) error {
+func (m *defaultPostModel) Update(ctx context.Context, data *Post) error {
 	query := fmt.Sprintf("update %s set %s where `post_id` = ?", m.table, postRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, newData.AuthorId, newData.CreateRequestId, newData.LifecycleStatus, newData.Visibility, newData.AvailabilityStatus, newData.PublishedRevisionId, newData.PostVersion, newData.FirstPublishedAt, newData.LastPublishedAt, newData.DeletedAt, newData.PostId)
+	_, err := m.conn.ExecCtx(ctx, query, data.AuthorId, data.LifecycleStatus, data.Visibility, data.AvailabilityStatus, data.PublishedRevisionId, data.PostVersion, data.FirstPublishedAt, data.LastPublishedAt, data.DeletedAt, data.PostId)
 	return err
 }
 

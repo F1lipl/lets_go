@@ -55,7 +55,7 @@ func statusFor(code ecode.Code) int {
 	case ecode.Success:
 		return http.StatusOK
 	case ecode.InvalidRequest, ecode.InvalidCursor, ecode.InvalidPageSize,
-		ecode.InvalidPostID, ecode.InvalidRequestID, ecode.InvalidUserID,
+		ecode.InvalidPostID, ecode.InvalidUserID,
 		ecode.InvalidRevisionID, ecode.InvalidMediaAssetID,
 		ecode.InvalidVisibility,
 		ecode.InvalidLifecycleStatus,
@@ -74,8 +74,7 @@ func statusFor(code ecode.Code) int {
 		ecode.PostNotPublished, ecode.DraftVersionConflict,
 		ecode.PublishNotAllowed, ecode.MediaAssetNotReady, ecode.MediaAssetInUse,
 		ecode.MediaUploadIncomplete, ecode.MediaHashMismatch,
-		ecode.MediaProcessingFailed, ecode.TagUnavailable, ecode.PostVersionConflict,
-		ecode.IdempotencyConflict, ecode.RequestInProgress:
+		ecode.MediaProcessingFailed, ecode.TagUnavailable, ecode.PostVersionConflict:
 		return http.StatusConflict
 	case ecode.MediaUploadExpired:
 		return http.StatusGone
@@ -88,6 +87,9 @@ func statusFor(code ecode.Code) int {
 
 func codeFromError(err error) ecode.Code {
 	switch {
+	case errors.Is(err, domain.ErrInvalidPost),
+		errors.Is(err, domain.ErrDraftPostMismatch):
+		return ecode.InvalidRequest
 	case errors.Is(err, domain.ErrInvalidPostID):
 		return ecode.InvalidPostID
 	case errors.Is(err, domain.ErrInvalidUserID):
@@ -98,6 +100,18 @@ func codeFromError(err error) ecode.Code {
 		return ecode.InvalidLifecycleStatus
 	case errors.Is(err, domain.ErrInvalidVisibility):
 		return ecode.InvalidVisibility
+	case errors.Is(err, domain.ErrInvalidVersion):
+		return ecode.InvalidVersion
+	case errors.Is(err, domain.ErrDraftVersionConflict):
+		return ecode.DraftVersionConflict
+	case errors.Is(err, domain.ErrPostNotFound):
+		return ecode.PostNotFound
+	case errors.Is(err, domain.ErrPostAlreadyDeleted):
+		return ecode.PostAlreadyDeleted
+	case errors.Is(err, domain.ErrPostOperationNotAllowed):
+		return ecode.PostOperationNotAllowed
+	case errors.Is(err, domain.ErrPostVersionConflict):
+		return ecode.PostVersionConflict
 	default:
 		return ecode.FromError(err)
 	}
