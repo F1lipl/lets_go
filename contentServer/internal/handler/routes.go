@@ -96,16 +96,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: PublishPostHandler(serverCtx),
 			},
 			{
-				Method:  http.MethodPost,
-				Path:    "/posts/:postId/route-draft",
-				Handler: CreatePostRouteDraftHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodDelete,
-				Path:    "/posts/:postId/route-draft",
-				Handler: DetachPostRouteDraftHandler(serverCtx),
-			},
-			{
 				Method:  http.MethodPut,
 				Path:    "/posts/:postId/visibility",
 				Handler: ChangePostVisibilityHandler(serverCtx),

@@ -8,11 +8,17 @@ import (
 
 	"contentserver/internal/ecode"
 	"contentserver/internal/httpresponse"
+	"contentserver/internal/types"
 )
 
 var errNilBusinessResult = errors.New("logic returned nil data without an error")
 
 func writeInvalidRequest(ctx context.Context, w http.ResponseWriter, err error) {
+	if errors.Is(err, types.ErrInvalidBatchPostIDs) {
+		httpresponse.WriteError(ctx, w, ecode.Wrap(ecode.InvalidBatchPostIDs, err))
+		return
+	}
+
 	httpresponse.WriteError(ctx, w, ecode.Wrap(ecode.InvalidRequest, err))
 }
 

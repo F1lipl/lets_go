@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"contentserver/internal/domain"
 	"contentserver/internal/ecode"
 )
 
@@ -80,6 +81,23 @@ func TestWriteErrorHidesUnknownError(t *testing.T) {
 	}
 }
 
+func TestWriteErrorMapsDomainError(t *testing.T) {
+	recorder := httptest.NewRecorder()
+
+	WriteError(context.Background(), recorder, domain.ErrInvalidPostID)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusBadRequest)
+	}
+	var body Envelope
+	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode body: %v", err)
+	}
+	if body.ErrorCode != ecode.InvalidPostID.Int() {
+		t.Fatalf("errorCode = %d, want %d", body.ErrorCode, ecode.InvalidPostID)
+	}
+}
+
 func TestStatusFor(t *testing.T) {
 	tests := []struct {
 		code ecode.Code
@@ -87,8 +105,10 @@ func TestStatusFor(t *testing.T) {
 	}{
 		{ecode.Success, http.StatusOK},
 		{ecode.InvalidRequest, http.StatusBadRequest},
+		{ecode.InvalidPostID, http.StatusBadRequest},
 		{ecode.PostNotFound, http.StatusNotFound},
 		{ecode.DraftVersionConflict, http.StatusConflict},
+		{ecode.MediaUploadExpired, http.StatusGone},
 		{ecode.DependencyUnavailable, http.StatusServiceUnavailable},
 		{ecode.InternalError, http.StatusInternalServerError},
 	}

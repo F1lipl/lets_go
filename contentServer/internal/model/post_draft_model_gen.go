@@ -39,19 +39,15 @@ type (
 	PostDraft struct {
 		PostId                string          `db:"post_id"`
 		DraftVersion          uint64          `db:"draft_version"`
-		LastSaveRequestId     string          `db:"last_save_request_id"`
 		Title                 string          `db:"title"`
 		Summary               string          `db:"summary"`
 		CoverAssetId          sql.NullString  `db:"cover_asset_id"`
 		CoverFocusX           sql.NullFloat64 `db:"cover_focus_x"`
 		CoverFocusY           sql.NullFloat64 `db:"cover_focus_y"`
 		CoverCropStyle        string          `db:"cover_crop_style"`
-		PresentationMode      uint64          `db:"presentation_mode"` // 1 traditional, 2 route
 		DocumentSchemaVersion uint64          `db:"document_schema_version"`
 		DocumentJson          string          `db:"document_json"`
 		TagNamesJson          string          `db:"tag_names_json"`
-		RouteDraftId          sql.NullString  `db:"route_draft_id"`
-		RouteDraftVersion     sql.NullInt64   `db:"route_draft_version"`
 		PlainText             string          `db:"plain_text"`
 		BlockCount            uint64          `db:"block_count"`
 		ImageCount            uint64          `db:"image_count"`
@@ -88,14 +84,14 @@ func (m *defaultPostDraftModel) FindOne(ctx context.Context, postId string) (*Po
 }
 
 func (m *defaultPostDraftModel) Insert(ctx context.Context, data *PostDraft) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, postDraftRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.PostId, data.DraftVersion, data.LastSaveRequestId, data.Title, data.Summary, data.CoverAssetId, data.CoverFocusX, data.CoverFocusY, data.CoverCropStyle, data.PresentationMode, data.DocumentSchemaVersion, data.DocumentJson, data.TagNamesJson, data.RouteDraftId, data.RouteDraftVersion, data.PlainText, data.BlockCount, data.ImageCount)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, postDraftRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.PostId, data.DraftVersion, data.Title, data.Summary, data.CoverAssetId, data.CoverFocusX, data.CoverFocusY, data.CoverCropStyle, data.DocumentSchemaVersion, data.DocumentJson, data.TagNamesJson, data.PlainText, data.BlockCount, data.ImageCount)
 	return ret, err
 }
 
 func (m *defaultPostDraftModel) Update(ctx context.Context, data *PostDraft) error {
 	query := fmt.Sprintf("update %s set %s where `post_id` = ?", m.table, postDraftRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.DraftVersion, data.LastSaveRequestId, data.Title, data.Summary, data.CoverAssetId, data.CoverFocusX, data.CoverFocusY, data.CoverCropStyle, data.PresentationMode, data.DocumentSchemaVersion, data.DocumentJson, data.TagNamesJson, data.RouteDraftId, data.RouteDraftVersion, data.PlainText, data.BlockCount, data.ImageCount, data.PostId)
+	_, err := m.conn.ExecCtx(ctx, query, data.DraftVersion, data.Title, data.Summary, data.CoverAssetId, data.CoverFocusX, data.CoverFocusY, data.CoverCropStyle, data.DocumentSchemaVersion, data.DocumentJson, data.TagNamesJson, data.PlainText, data.BlockCount, data.ImageCount, data.PostId)
 	return err
 }
 

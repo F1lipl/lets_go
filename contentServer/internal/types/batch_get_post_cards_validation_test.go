@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 )
@@ -24,6 +25,8 @@ func TestBatchGetPostCardsRequestValidate(t *testing.T) {
 			req := BatchGetPostCardsRequest{PostIds: tt.postIds}
 			if err := req.Validate(); (err != nil) != tt.wantErr {
 				t.Fatalf("Validate() error = %v, wantErr %v", err, tt.wantErr)
+			} else if tt.wantErr && !errors.Is(err, ErrInvalidBatchPostIDs) {
+				t.Fatalf("Validate() error = %v, want ErrInvalidBatchPostIDs", err)
 			}
 		})
 	}

@@ -13,8 +13,6 @@ func TestBusinessResponsesUseEnvelopeAndSeparateData(t *testing.T) {
 		{CreatePostResponse{}, CreatePostData{}},
 		{GetPostDraftResponse{}, GetPostDraftData{}},
 		{SavePostDraftResponse{}, SavePostDraftData{}},
-		{CreatePostRouteDraftResponse{}, CreatePostRouteDraftData{}},
-		{DetachPostRouteDraftResponse{}, DetachPostRouteDraftData{}},
 		{PublishPostResponse{}, PublishPostData{}},
 		{ChangePostVisibilityResponse{}, ChangePostVisibilityData{}},
 		{DeletePostResponse{}, DeletePostData{}},

@@ -10,14 +10,22 @@ import (
 // Code is independent of the HTTP status code.
 type Code int
 
+// Retired codes 800109, 800112, 800115 and 800701-800706 remain reserved.
 const (
 	Success Code = 0
 
-	InvalidRequest   Code = 800101
-	InvalidCursor    Code = 800102
-	InvalidPageSize  Code = 800103
-	InvalidPostID    Code = 800104
-	InvalidRequestID Code = 800105
+	InvalidRequest         Code = 800101
+	InvalidCursor          Code = 800102
+	InvalidPageSize        Code = 800103
+	InvalidPostID          Code = 800104
+	InvalidRequestID       Code = 800105
+	InvalidUserID          Code = 800106
+	InvalidRevisionID      Code = 800107
+	InvalidMediaAssetID    Code = 800108
+	InvalidVisibility      Code = 800110
+	InvalidLifecycleStatus Code = 800111
+	InvalidVersion         Code = 800113
+	InvalidBatchPostIDs    Code = 800114
 
 	PostNotFound            Code = 800201
 	PostAlreadyDeleted      Code = 800202
@@ -33,20 +41,25 @@ const (
 	RevisionNotFound     Code = 800402
 	RevisionCreateFailed Code = 800403
 
-	MediaAssetNotFound   Code = 800501
-	MediaAssetNotReady   Code = 800502
-	MediaTypeUnsupported Code = 800503
-	MediaSizeExceeded    Code = 800504
-	MediaAssetInUse      Code = 800505
+	MediaAssetNotFound    Code = 800501
+	MediaAssetNotReady    Code = 800502
+	MediaTypeUnsupported  Code = 800503
+	MediaSizeExceeded     Code = 800504
+	MediaAssetInUse       Code = 800505
+	MediaUploadExpired    Code = 800506
+	MediaUploadIncomplete Code = 800507
+	MediaHashMismatch     Code = 800508
+	MediaProcessingFailed Code = 800509
 
 	TagNotFound    Code = 800601
 	TagNameInvalid Code = 800602
-
-	RouteDraftNotFound   Code = 800701
-	RouteVersionConflict Code = 800702
-	RouteSnapshotFailed  Code = 800703
+	InvalidTagID   Code = 800603
+	TooManyTags    Code = 800604
+	TagUnavailable Code = 800605
 
 	PostVersionConflict    Code = 800801
+	IdempotencyConflict    Code = 800802
+	RequestInProgress      Code = 800803
 	RequestIdentityInvalid Code = 800901
 
 	InternalError         Code = 900001
@@ -62,6 +75,13 @@ var messages = map[Code]string{
 	InvalidPageSize:         "分页数量不正确",
 	InvalidPostID:           "帖子标识不正确",
 	InvalidRequestID:        "请求标识不正确",
+	InvalidUserID:           "用户标识不正确",
+	InvalidRevisionID:       "发布版本标识不正确",
+	InvalidMediaAssetID:     "图片资源标识不正确",
+	InvalidVisibility:       "可见范围不正确",
+	InvalidLifecycleStatus:  "帖子状态不正确",
+	InvalidVersion:          "版本号不正确",
+	InvalidBatchPostIDs:     "批量帖子标识不正确",
 	PostNotFound:            "帖子不存在",
 	PostAlreadyDeleted:      "帖子已删除",
 	PostOperationNotAllowed: "当前状态不允许执行此操作",
@@ -78,12 +98,18 @@ var messages = map[Code]string{
 	MediaTypeUnsupported:    "图片格式不受支持",
 	MediaSizeExceeded:       "图片大小超过限制",
 	MediaAssetInUse:         "图片正在被内容使用",
+	MediaUploadExpired:      "图片上传凭据已过期",
+	MediaUploadIncomplete:   "图片尚未上传完成",
+	MediaHashMismatch:       "图片内容校验不一致",
+	MediaProcessingFailed:   "图片处理失败",
 	TagNotFound:             "话题不存在",
 	TagNameInvalid:          "话题名称不正确",
-	RouteDraftNotFound:      "路线草稿不存在",
-	RouteVersionConflict:    "路线已被更新，请刷新后重试",
-	RouteSnapshotFailed:     "生成路线快照失败",
+	InvalidTagID:            "话题标识不正确",
+	TooManyTags:             "话题数量超过限制",
+	TagUnavailable:          "话题当前不可用",
 	PostVersionConflict:     "帖子已被更新，请刷新后重试",
+	IdempotencyConflict:     "请求标识已用于其他操作",
+	RequestInProgress:       "相同请求正在处理中",
 	RequestIdentityInvalid:  "当前请求缺少有效的用户信息",
 	InternalError:           "服务暂时不可用",
 	DatabaseError:           "数据处理失败",

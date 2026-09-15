@@ -50,12 +50,9 @@ type (
 		CoverFocusX           sql.NullFloat64 `db:"cover_focus_x"`
 		CoverFocusY           sql.NullFloat64 `db:"cover_focus_y"`
 		CoverCropStyle        string          `db:"cover_crop_style"`
-		PresentationMode      uint64          `db:"presentation_mode"`
 		DocumentSchemaVersion uint64          `db:"document_schema_version"`
 		DocumentJson          string          `db:"document_json"`
 		PlainText             string          `db:"plain_text"`
-		RouteSnapshotId       sql.NullString  `db:"route_snapshot_id"`
-		RouteSnapshotVersion  sql.NullInt64   `db:"route_snapshot_version"`
 		BlockCount            uint64          `db:"block_count"`
 		ImageCount            uint64          `db:"image_count"`
 		PublishedAt           time.Time       `db:"published_at"`
@@ -119,14 +116,14 @@ func (m *defaultPostRevisionModel) FindOneByPostIdRevisionNumber(ctx context.Con
 }
 
 func (m *defaultPostRevisionModel) Insert(ctx context.Context, data *PostRevision) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, postRevisionRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.RevisionId, data.PostId, data.RevisionNumber, data.SourceDraftVersion, data.PublishRequestId, data.Title, data.Summary, data.CoverAssetId, data.CoverFocusX, data.CoverFocusY, data.CoverCropStyle, data.PresentationMode, data.DocumentSchemaVersion, data.DocumentJson, data.PlainText, data.RouteSnapshotId, data.RouteSnapshotVersion, data.BlockCount, data.ImageCount, data.PublishedAt)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, postRevisionRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.RevisionId, data.PostId, data.RevisionNumber, data.SourceDraftVersion, data.PublishRequestId, data.Title, data.Summary, data.CoverAssetId, data.CoverFocusX, data.CoverFocusY, data.CoverCropStyle, data.DocumentSchemaVersion, data.DocumentJson, data.PlainText, data.BlockCount, data.ImageCount, data.PublishedAt)
 	return ret, err
 }
 
 func (m *defaultPostRevisionModel) Update(ctx context.Context, newData *PostRevision) error {
 	query := fmt.Sprintf("update %s set %s where `revision_id` = ?", m.table, postRevisionRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, newData.PostId, newData.RevisionNumber, newData.SourceDraftVersion, newData.PublishRequestId, newData.Title, newData.Summary, newData.CoverAssetId, newData.CoverFocusX, newData.CoverFocusY, newData.CoverCropStyle, newData.PresentationMode, newData.DocumentSchemaVersion, newData.DocumentJson, newData.PlainText, newData.RouteSnapshotId, newData.RouteSnapshotVersion, newData.BlockCount, newData.ImageCount, newData.PublishedAt, newData.RevisionId)
+	_, err := m.conn.ExecCtx(ctx, query, newData.PostId, newData.RevisionNumber, newData.SourceDraftVersion, newData.PublishRequestId, newData.Title, newData.Summary, newData.CoverAssetId, newData.CoverFocusX, newData.CoverFocusY, newData.CoverCropStyle, newData.DocumentSchemaVersion, newData.DocumentJson, newData.PlainText, newData.BlockCount, newData.ImageCount, newData.PublishedAt, newData.RevisionId)
 	return err
 }
 

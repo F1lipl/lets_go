@@ -9,13 +9,17 @@ func TestCodesAreUniqueAndHaveMessages(t *testing.T) {
 	codes := []Code{
 		Success,
 		InvalidRequest, InvalidCursor, InvalidPageSize, InvalidPostID, InvalidRequestID,
+		InvalidUserID, InvalidRevisionID, InvalidMediaAssetID,
+		InvalidVisibility, InvalidLifecycleStatus,
+		InvalidVersion, InvalidBatchPostIDs,
 		PostNotFound, PostAlreadyDeleted, PostOperationNotAllowed, PostNotPublished, PostNotVisible,
 		DraftNotFound, DraftVersionConflict, DraftContentInvalid,
 		PublishNotAllowed, RevisionNotFound, RevisionCreateFailed,
 		MediaAssetNotFound, MediaAssetNotReady, MediaTypeUnsupported, MediaSizeExceeded, MediaAssetInUse,
-		TagNotFound, TagNameInvalid,
-		RouteDraftNotFound, RouteVersionConflict, RouteSnapshotFailed,
-		PostVersionConflict, RequestIdentityInvalid,
+		MediaUploadExpired, MediaUploadIncomplete, MediaHashMismatch, MediaProcessingFailed,
+		TagNotFound, TagNameInvalid, InvalidTagID, TooManyTags, TagUnavailable,
+
+		PostVersionConflict, IdempotencyConflict, RequestInProgress, RequestIdentityInvalid,
 		InternalError, DatabaseError, CacheError, DependencyUnavailable,
 	}
 

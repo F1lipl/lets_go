@@ -2,9 +2,9 @@ syntax = "v1"
 
 info (
 	title:   "Content Service"
-	desc:    "Content service API based on Post and PostDraft aggregates"
+	desc:    "Independent text and image posts; travel plans belong to TripServer"
 	author:  "contentServer"
-	version: "3.0"
+	version: "4.1"
 )
 
 type HealthResponse {
@@ -34,21 +34,14 @@ type CoverView {
 	LargeUrl     string  `json:"largeUrl,optional"`
 }
 
-type RouteBinding {
-	TargetType string `json:"targetType"`
-	TargetKey  string `json:"targetKey"`
-}
-
 type ContentBlock {
-	BlockId       string         `json:"blockId"`
-	ParentBlockId string         `json:"parentBlockId,optional"`
-	BlockType     string         `json:"blockType"`
-	SortOrder     int64          `json:"sortOrder"`
-	Title         string         `json:"title,optional"`
-	Text          string         `json:"text,optional"`
-	AssetIds      []string       `json:"assetIds,optional"`
-	PlaceId       string         `json:"placeId,optional"`
-	Bindings      []RouteBinding `json:"bindings,optional"`
+	BlockId       string   `json:"blockId"`
+	ParentBlockId string   `json:"parentBlockId,optional"`
+	BlockType     string   `json:"blockType"`
+	SortOrder     int64    `json:"sortOrder"`
+	Title         string   `json:"title,optional"`
+	Text          string   `json:"text,optional"`
+	AssetIds      []string `json:"assetIds,optional"`
 }
 
 type PostDocument {
@@ -71,29 +64,14 @@ type PostTag {
 	Name string `json:"name"`
 }
 
-type RouteDraftView {
-	RouteDraftId string `json:"routeDraftId,optional"`
-	RouteVersion uint64 `json:"routeVersion,optional"`
-}
-
-type RouteSnapshotSummary {
-	RouteSnapshotId string `json:"routeSnapshotId,optional"`
-	SnapshotVersion uint64 `json:"snapshotVersion,optional"`
-	DayCount        int64  `json:"dayCount,optional"`
-	NodeCount       int64  `json:"nodeCount,optional"`
-	PreviewAssetId  string `json:"previewAssetId,optional"`
-	PreviewUrl      string `json:"previewUrl,optional"`
-}
-
 type CreatePostRequest {
-	RequestId        string       `json:"requestId"`
-	Visibility       string       `json:"visibility"`
-	Title            string       `json:"title,optional"`
-	Summary          string       `json:"summary,optional"`
-	Cover            CoverInput   `json:"cover,optional"`
-	PresentationMode string       `json:"presentationMode"`
-	Document         PostDocument `json:"document"`
-	TagNames         []string     `json:"tagNames,optional"`
+	RequestId  string       `json:"requestId"`
+	Visibility string       `json:"visibility"`
+	Title      string       `json:"title,optional"`
+	Summary    string       `json:"summary,optional"`
+	Cover      CoverInput   `json:"cover,optional"`
+	Document   PostDocument `json:"document"`
+	TagNames   []string     `json:"tagNames,optional"`
 }
 
 type CreatePostData {
@@ -116,22 +94,19 @@ type GetPostDraftRequest {
 }
 
 type GetPostDraftData {
-	PostId           string           `json:"postId"`
-	Status           string           `json:"status"`
-	Visibility       string           `json:"visibility"`
-	Title            string           `json:"title"`
-	Summary          string           `json:"summary"`
-	HasCover         bool             `json:"hasCover"`
-	Cover            CoverView        `json:"cover"`
-	PresentationMode string           `json:"presentationMode"`
-	Document         PostDocument     `json:"document"`
-	MediaAssets      []MediaAssetView `json:"mediaAssets"`
-	TagNames         []string         `json:"tagNames"`
-	HasRoute         bool             `json:"hasRoute"`
-	Route            RouteDraftView   `json:"route"`
-	PostVersion      uint64           `json:"postVersion"`
-	DraftVersion     uint64           `json:"draftVersion"`
-	UpdatedAt        string           `json:"updatedAt"`
+	PostId       string           `json:"postId"`
+	Status       string           `json:"status"`
+	Visibility   string           `json:"visibility"`
+	Title        string           `json:"title"`
+	Summary      string           `json:"summary"`
+	HasCover     bool             `json:"hasCover"`
+	Cover        CoverView        `json:"cover"`
+	Document     PostDocument     `json:"document"`
+	MediaAssets  []MediaAssetView `json:"mediaAssets"`
+	TagNames     []string         `json:"tagNames"`
+	PostVersion  uint64           `json:"postVersion"`
+	DraftVersion uint64           `json:"draftVersion"`
+	UpdatedAt    string           `json:"updatedAt"`
 }
 
 type GetPostDraftResponse {
@@ -142,13 +117,12 @@ type GetPostDraftResponse {
 }
 
 type SavePostDraftRequest {
-	PostId               string       `path:"postId"`
-	SaveRequestId        string       `json:"saveRequestId"`
+	PostId string `path:"postId"`
+	// Save uses optimistic concurrency. A retry with an old version conflicts.
 	ExpectedDraftVersion uint64       `json:"expectedDraftVersion"`
 	Title                string       `json:"title,optional"`
 	Summary              string       `json:"summary,optional"`
 	Cover                CoverInput   `json:"cover,optional"`
-	PresentationMode     string       `json:"presentationMode"`
 	Document             PostDocument `json:"document"`
 	TagNames             []string     `json:"tagNames,optional"`
 }
@@ -166,62 +140,20 @@ type SavePostDraftResponse {
 	RequestId string            `json:"requestId,omitempty"`
 }
 
-type CreatePostRouteDraftRequest {
-	PostId               string `path:"postId"`
-	ExpectedDraftVersion uint64 `json:"expectedDraftVersion"`
-	RequestId            string `json:"requestId"`
-}
-
-type CreatePostRouteDraftData {
-	PostId       string `json:"postId"`
-	RouteDraftId string `json:"routeDraftId"`
-	RouteVersion uint64 `json:"routeVersion"`
-	DraftVersion uint64 `json:"draftVersion"`
-	CreatedAt    string `json:"createdAt"`
-}
-
-type CreatePostRouteDraftResponse {
-	ErrorCode int                      `json:"errorCode"`
-	Message   string                   `json:"message"`
-	Data      CreatePostRouteDraftData `json:"data,omitempty"`
-	RequestId string                   `json:"requestId,omitempty"`
-}
-
-type DetachPostRouteDraftRequest {
-	PostId               string `path:"postId"`
-	RequestId            string `form:"requestId"`
-	ExpectedDraftVersion uint64 `form:"expectedDraftVersion"`
-}
-
-type DetachPostRouteDraftData {
-	PostId       string `json:"postId"`
-	DraftVersion uint64 `json:"draftVersion"`
-	UpdatedAt    string `json:"updatedAt"`
-}
-
-type DetachPostRouteDraftResponse {
-	ErrorCode int                      `json:"errorCode"`
-	Message   string                   `json:"message"`
-	Data      DetachPostRouteDraftData `json:"data,omitempty"`
-	RequestId string                   `json:"requestId,omitempty"`
-}
-
 type PublishPostRequest {
 	PostId               string `path:"postId"`
 	ExpectedPostVersion  uint64 `json:"expectedPostVersion"`
 	ExpectedDraftVersion uint64 `json:"expectedDraftVersion"`
-	ExpectedRouteVersion uint64 `json:"expectedRouteVersion,optional"`
 	PublishRequestId     string `json:"publishRequestId"`
 }
 
 type PublishPostData {
-	PostId          string `json:"postId"`
-	RevisionId      string `json:"revisionId"`
-	RevisionNumber  uint64 `json:"revisionNumber"`
-	RouteSnapshotId string `json:"routeSnapshotId,optional"`
-	Status          string `json:"status"`
-	PostVersion     uint64 `json:"postVersion"`
-	PublishedAt     string `json:"publishedAt"`
+	PostId         string `json:"postId"`
+	RevisionId     string `json:"revisionId"`
+	RevisionNumber uint64 `json:"revisionNumber"`
+	Status         string `json:"status"`
+	PostVersion    uint64 `json:"postVersion"`
+	PublishedAt    string `json:"publishedAt"`
 }
 
 type PublishPostResponse {
@@ -277,27 +209,24 @@ type GetPostRequest {
 }
 
 type GetPostData {
-	PostId           string               `json:"postId"`
-	AuthorId         string               `json:"authorId"`
-	Status           string               `json:"status"`
-	Visibility       string               `json:"visibility"`
-	RevisionId       string               `json:"revisionId"`
-	RevisionNumber   uint64               `json:"revisionNumber"`
-	Title            string               `json:"title"`
-	Summary          string               `json:"summary"`
-	HasCover         bool                 `json:"hasCover"`
-	Cover            CoverView            `json:"cover"`
-	PresentationMode string               `json:"presentationMode"`
-	Document         PostDocument         `json:"document"`
-	MediaAssets      []MediaAssetView     `json:"mediaAssets"`
-	Tags             []PostTag            `json:"tags"`
-	HasRoute         bool                 `json:"hasRoute"`
-	Route            RouteSnapshotSummary `json:"route"`
-	LikeCount        uint64               `json:"likeCount"`
-	FavoriteCount    uint64               `json:"favoriteCount"`
-	CommentCount     uint64               `json:"commentCount"`
-	PostVersion      uint64               `json:"postVersion"`
-	PublishedAt      string               `json:"publishedAt"`
+	PostId         string           `json:"postId"`
+	AuthorId       string           `json:"authorId"`
+	Status         string           `json:"status"`
+	Visibility     string           `json:"visibility"`
+	RevisionId     string           `json:"revisionId"`
+	RevisionNumber uint64           `json:"revisionNumber"`
+	Title          string           `json:"title"`
+	Summary        string           `json:"summary"`
+	HasCover       bool             `json:"hasCover"`
+	Cover          CoverView        `json:"cover"`
+	Document       PostDocument     `json:"document"`
+	MediaAssets    []MediaAssetView `json:"mediaAssets"`
+	Tags           []PostTag        `json:"tags"`
+	LikeCount      uint64           `json:"likeCount"`
+	FavoriteCount  uint64           `json:"favoriteCount"`
+	CommentCount   uint64           `json:"commentCount"`
+	PostVersion    uint64           `json:"postVersion"`
+	PublishedAt    string           `json:"publishedAt"`
 }
 
 type GetPostResponse {
@@ -308,30 +237,26 @@ type GetPostResponse {
 }
 
 type ListPostsRequest {
-	Cursor  string `form:"cursor,optional"`
-	Limit   int64  `form:"limit,default=20,range=[1:30]"`
-	TagId   string `form:"tagId,optional"`
-	PlaceId string `form:"placeId,optional"`
+	Cursor string `form:"cursor,optional"`
+	Limit  int64  `form:"limit,default=20,range=[1:30]"`
+	TagId  string `form:"tagId,optional"`
 }
 
 type PublishedPostCard {
-	PostId           string               `json:"postId"`
-	RevisionId       string               `json:"revisionId"`
-	AuthorId         string               `json:"authorId"`
-	Visibility       string               `json:"visibility"`
-	Title            string               `json:"title"`
-	Summary          string               `json:"summary"`
-	HasCover         bool                 `json:"hasCover"`
-	Cover            CoverView            `json:"cover"`
-	PresentationMode string               `json:"presentationMode"`
-	Tags             []PostTag            `json:"tags"`
-	HasRoute         bool                 `json:"hasRoute"`
-	Route            RouteSnapshotSummary `json:"route"`
-	LikeCount        uint64               `json:"likeCount"`
-	FavoriteCount    uint64               `json:"favoriteCount"`
-	CommentCount     uint64               `json:"commentCount"`
-	PostVersion      uint64               `json:"postVersion"`
-	PublishedAt      string               `json:"publishedAt"`
+	PostId        string    `json:"postId"`
+	RevisionId    string    `json:"revisionId"`
+	AuthorId      string    `json:"authorId"`
+	Visibility    string    `json:"visibility"`
+	Title         string    `json:"title"`
+	Summary       string    `json:"summary"`
+	HasCover      bool      `json:"hasCover"`
+	Cover         CoverView `json:"cover"`
+	Tags          []PostTag `json:"tags"`
+	LikeCount     uint64    `json:"likeCount"`
+	FavoriteCount uint64    `json:"favoriteCount"`
+	CommentCount  uint64    `json:"commentCount"`
+	PostVersion   uint64    `json:"postVersion"`
+	PublishedAt   string    `json:"publishedAt"`
 }
 
 type ListPostsData {
@@ -354,22 +279,19 @@ type ListMyPostsRequest {
 }
 
 type CreatorPostCard {
-	PostId                string         `json:"postId"`
-	Title                 string         `json:"title"`
-	Summary               string         `json:"summary"`
-	HasCover              bool           `json:"hasCover"`
-	Cover                 CoverView      `json:"cover"`
-	Status                string         `json:"status"`
-	Visibility            string         `json:"visibility"`
-	PresentationMode      string         `json:"presentationMode"`
-	HasRoute              bool           `json:"hasRoute"`
-	Route                 RouteDraftView `json:"route"`
-	PostVersion           uint64         `json:"postVersion"`
-	DraftVersion          uint64         `json:"draftVersion"`
-	PublishedRevisionId   string         `json:"publishedRevisionId,optional"`
-	HasUnpublishedChanges bool           `json:"hasUnpublishedChanges"`
-	PublishedAt           string         `json:"publishedAt,optional"`
-	UpdatedAt             string         `json:"updatedAt"`
+	PostId                string    `json:"postId"`
+	Title                 string    `json:"title"`
+	Summary               string    `json:"summary"`
+	HasCover              bool      `json:"hasCover"`
+	Cover                 CoverView `json:"cover"`
+	Status                string    `json:"status"`
+	Visibility            string    `json:"visibility"`
+	PostVersion           uint64    `json:"postVersion"`
+	DraftVersion          uint64    `json:"draftVersion"`
+	PublishedRevisionId   string    `json:"publishedRevisionId,optional"`
+	HasUnpublishedChanges bool      `json:"hasUnpublishedChanges"`
+	PublishedAt           string    `json:"publishedAt,optional"`
+	UpdatedAt             string    `json:"updatedAt"`
 }
 
 type ListMyPostsData {
@@ -520,12 +442,6 @@ service content-api {
 
 	@handler SavePostDraft
 	put /posts/:postId/draft (SavePostDraftRequest) returns (SavePostDraftResponse)
-
-	@handler CreatePostRouteDraft
-	post /posts/:postId/route-draft (CreatePostRouteDraftRequest) returns (CreatePostRouteDraftResponse)
-
-	@handler DetachPostRouteDraft
-	delete /posts/:postId/route-draft (DetachPostRouteDraftRequest) returns (DetachPostRouteDraftResponse)
 
 	@handler PublishPost
 	post /posts/:postId/publish (PublishPostRequest) returns (PublishPostResponse)

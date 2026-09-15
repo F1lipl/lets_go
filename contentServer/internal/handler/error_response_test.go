@@ -29,3 +29,22 @@ func TestWriteBusinessResponseRejectsNilData(t *testing.T) {
 		t.Fatalf("errorCode = %d, want %d", body.ErrorCode, ecode.InternalError)
 	}
 }
+
+func TestWriteInvalidRequestMapsBatchPostIDs(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req := types.BatchGetPostCardsRequest{}
+	err := req.Validate()
+
+	writeInvalidRequest(context.Background(), recorder, err)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusBadRequest)
+	}
+	var body httpresponse.Envelope
+	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode body: %v", err)
+	}
+	if body.ErrorCode != ecode.InvalidBatchPostIDs.Int() {
+		t.Fatalf("errorCode = %d, want %d", body.ErrorCode, ecode.InvalidBatchPostIDs)
+	}
+}

@@ -43,10 +43,6 @@ type (
 		Title              string         `db:"title"`
 		Summary            string         `db:"summary"`
 		CoverAssetId       sql.NullString `db:"cover_asset_id"`
-		PresentationMode   uint64         `db:"presentation_mode"`
-		RouteSnapshotId    sql.NullString `db:"route_snapshot_id"`
-		RouteDayCount      uint64         `db:"route_day_count"`
-		RouteNodeCount     uint64         `db:"route_node_count"`
 		Visibility         uint64         `db:"visibility"`
 		AvailabilityStatus uint64         `db:"availability_status"`
 		PublishedAt        time.Time      `db:"published_at"`
@@ -83,14 +79,14 @@ func (m *defaultPostCardProjectionModel) FindOne(ctx context.Context, postId str
 }
 
 func (m *defaultPostCardProjectionModel) Insert(ctx context.Context, data *PostCardProjection) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, postCardProjectionRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.PostId, data.RevisionId, data.AuthorId, data.Title, data.Summary, data.CoverAssetId, data.PresentationMode, data.RouteSnapshotId, data.RouteDayCount, data.RouteNodeCount, data.Visibility, data.AvailabilityStatus, data.PublishedAt, data.SourcePostVersion)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, postCardProjectionRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.PostId, data.RevisionId, data.AuthorId, data.Title, data.Summary, data.CoverAssetId, data.Visibility, data.AvailabilityStatus, data.PublishedAt, data.SourcePostVersion)
 	return ret, err
 }
 
 func (m *defaultPostCardProjectionModel) Update(ctx context.Context, data *PostCardProjection) error {
 	query := fmt.Sprintf("update %s set %s where `post_id` = ?", m.table, postCardProjectionRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.RevisionId, data.AuthorId, data.Title, data.Summary, data.CoverAssetId, data.PresentationMode, data.RouteSnapshotId, data.RouteDayCount, data.RouteNodeCount, data.Visibility, data.AvailabilityStatus, data.PublishedAt, data.SourcePostVersion, data.PostId)
+	_, err := m.conn.ExecCtx(ctx, query, data.RevisionId, data.AuthorId, data.Title, data.Summary, data.CoverAssetId, data.Visibility, data.AvailabilityStatus, data.PublishedAt, data.SourcePostVersion, data.PostId)
 	return err
 }
 
