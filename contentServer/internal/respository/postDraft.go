@@ -13,13 +13,6 @@ import (
 )
 
 type postDraftRepository struct {
-	conn sqlx.SqlConn
-}
-
-func newPostDraftRepository(conn sqlx.SqlConn) *postDraftRepository {
-	return &postDraftRepository{
-		conn: conn,
-	}
 }
 
 func getImageCount(draft *domain.PostDraft) uint64 {
@@ -73,8 +66,8 @@ func toPostDraft(draft *domain.PostDraft) (*model.PostDraft, error) {
 	return newDraft, nil
 }
 
-func (postDraft *postDraftRepository) CreatePostDraft(ctx context.Context, draft *domain.PostDraft) error {
-	postDraftModel := model.NewPostDraftModel(postDraft.conn)
+func (postDraft *postDraftRepository) CreatePostDraft(ctx context.Context, conn sqlx.SqlConn, draft *domain.PostDraft) error {
+	postDraftModel := model.NewPostDraftModel(conn)
 	Postdraft, err := toPostDraft(draft)
 	if err != nil {
 		return err
@@ -86,8 +79,8 @@ func (postDraft *postDraftRepository) CreatePostDraft(ctx context.Context, draft
 	return nil
 }
 
-func (postDraft *postDraftRepository) SaveDraft(ctx context.Context, draft *domain.PostDraft, expectedVersion uint64) error {
-	postDraftModel := model.NewPostDraftModel(postDraft.conn)
+func (postDraft *postDraftRepository) SaveDraft(ctx context.Context, conn sqlx.SqlConn, draft *domain.PostDraft, expectedVersion uint64) error {
+	postDraftModel := model.NewPostDraftModel(conn)
 	newDraft, err := toPostDraft(draft)
 	if err != nil {
 		return err
@@ -104,11 +97,11 @@ func (postDraft *postDraftRepository) SaveDraft(ctx context.Context, draft *doma
 	//TODO event
 }
 
-func (postDraft *postDraftRepository) DeleteDraft(ctx context.Context, id domain.PostID) error {
+func (postDraft *postDraftRepository) DeleteDraft(ctx context.Context, conn sqlx.SqlConn, id domain.PostID) error {
 	if id.IsZero() {
 		return domain.ErrInvalidPostID
 	}
-	postDraftModel := model.NewPostDraftModel(postDraft.conn)
+	postDraftModel := model.NewPostDraftModel(conn)
 	err := postDraftModel.Delete(ctx, id.String())
 	if err != nil {
 		return err

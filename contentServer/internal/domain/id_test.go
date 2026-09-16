@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -38,5 +39,57 @@ func TestPostIDBytesReturnsCopy(t *testing.T) {
 	second := id.Bytes()
 	if first[0] == second[0] {
 		t.Fatal("Bytes() exposed mutable identifier storage")
+	}
+}
+
+func TestIDClonePreservesValue(t *testing.T) {
+	postID, err := NewPostID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	userID, err := ParseUserID(uuid.NewString())
+	if err != nil {
+		t.Fatal(err)
+	}
+	revisionID, err := NewRevisionID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assetID, err := NewAssetID()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if cloned := postID.Clone(); cloned != postID {
+		t.Fatalf("PostID.Clone() = %v, want %v", cloned, postID)
+	}
+	if cloned := userID.Clone(); cloned != userID {
+		t.Fatalf("UserID.Clone() = %v, want %v", cloned, userID)
+	}
+	if cloned := revisionID.Clone(); cloned != revisionID {
+		t.Fatalf("RevisionID.Clone() = %v, want %v", cloned, revisionID)
+	}
+	if cloned := assetID.Clone(); cloned != assetID {
+		t.Fatalf("AssetID.Clone() = %v, want %v", cloned, assetID)
+	}
+}
+
+func TestAssetIDJSONRoundTrip(t *testing.T) {
+	want, err := NewAssetID()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := json.Marshal(want)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var got AssetID
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Fatalf("AssetID JSON round trip = %v, want %v", got, want)
 	}
 }

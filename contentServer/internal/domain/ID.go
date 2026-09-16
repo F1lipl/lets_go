@@ -33,6 +33,11 @@ func (id PostID) String() string {
 	return id.value.String()
 }
 
+// Clone returns an independent value copy of id.
+func (id PostID) Clone() PostID {
+	return PostID{value: id.value}
+}
+
 func (id PostID) IsZero() bool {
 	return id.value == uuid.Nil
 }
@@ -58,6 +63,11 @@ func ParseUserID(value string) (UserID, error) {
 
 func (id UserID) String() string {
 	return id.value.String()
+}
+
+// Clone returns an independent value copy of id.
+func (id UserID) Clone() UserID {
+	return UserID{value: id.value}
 }
 
 func (id UserID) IsZero() bool {
@@ -94,6 +104,11 @@ func (id RevisionID) String() string {
 	return id.value.String()
 }
 
+// Clone returns an independent value copy of id.
+func (id RevisionID) Clone() RevisionID {
+	return RevisionID{value: id.value}
+}
+
 func (id RevisionID) IsZero() bool {
 	return id.value == uuid.Nil
 }
@@ -121,12 +136,50 @@ func NewAssetID() (AssetID, error) {
 	return AssetID{value: id}, nil
 }
 
+func ParseAssetID(value string) (AssetID, error) {
+	id, err := parseUUID(value, ErrInvalidAssetID)
+	if err != nil {
+		return AssetID{}, err
+	}
+
+	return AssetID{value: id}, nil
+}
+
 func (id AssetID) String() string {
 	return id.value.String()
 }
+
+// Clone returns an independent value copy of id.
+func (id AssetID) Clone() AssetID {
+	return AssetID{value: id.value}
+}
+
+func (id AssetID) IsZero() bool {
+	return id.value == uuid.Nil
+}
+
+func (id AssetID) Bytes() []byte {
+	return uuidBytes(id.value)
+}
+
 func (id AssetID) MarshalJSON() ([]byte, error) {
 	return json.Marshal(id.value.String())
 }
+
+func (id *AssetID) UnmarshalJSON(data []byte) error {
+	var value string
+	if err := json.Unmarshal(data, &value); err != nil {
+		return fmt.Errorf("%w: %v", ErrInvalidAssetID, err)
+	}
+
+	parsed, err := ParseAssetID(value)
+	if err != nil {
+		return err
+	}
+	*id = parsed
+	return nil
+}
+
 func parseUUID(value string, invalidError error) (uuid.UUID, error) {
 	id, err := uuid.Parse(value)
 	if err != nil {

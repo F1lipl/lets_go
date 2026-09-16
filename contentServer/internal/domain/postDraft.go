@@ -1,8 +1,15 @@
 package domain
 
-import "time"
+import (
+	"contentserver/internal/model"
+	"context"
+	"encoding/json"
+	"time"
 
-type DraftCover struct {
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+)
+
+type Cover struct {
 	AssetID   AssetID
 	FocusX    float64
 	FocusY    float64
@@ -53,7 +60,7 @@ type PostDraft struct {
 
 	Title   string
 	Summary string
-	Cover   *DraftCover
+	Cover   *Cover
 
 	Document PostDocument
 	TagNames []string
@@ -65,7 +72,7 @@ type PostDraft struct {
 	PostDraftRepository postDraftRepository
 }
 
-func newPostDraft(id PostID, title string, summary string, cover *DraftCover, document PostDocument, tagName []string) (*PostDraft, error) {
+func CreateNewPostDraft(id PostID, title string, summary string, cover *Cover, document PostDocument, tagName []string) (*PostDraft, error) {
 	if id.IsZero() {
 		return nil, ErrInvalidPostID
 	}
@@ -82,6 +89,59 @@ func newPostDraft(id PostID, title string, summary string, cover *DraftCover, do
 		UpdatedAt: now,
 	}, nil
 }
+func getDraft(ctx context.Context, conn sqlx.SqlConn, id PostID) (*model.PostDraft, error) {
+	postDraftModel := model.NewPostDraftModel(conn)
+	return postDraftModel.FindOne(ctx, id.String())
+}
+
+func GetPostDraft(id PostID, ctx context.Context, conn sqlx.SqlConn) (*PostDraft, error) {
+	postDraftModel, err := getDraft(ctx, conn, id)
+	if err != nil {
+		return nil, err
+	}
+
+	postID, err := ParsePostID(postDraftModel.PostId)
+	if err != nil {
+		return nil, err
+	}
+
+	var cover *Cover
+	if postDraftModel.CoverAssetId.Valid {
+		assetID, err := ParseAssetID(postDraftModel.CoverAssetId.String)
+		if err != nil {
+			return nil, err
+		}
+		cover = &Cover{
+			AssetID:   assetID,
+			FocusX:    postDraftModel.CoverFocusX.Float64,
+			FocusY:    postDraftModel.CoverFocusY.Float64,
+			CropStyle: postDraftModel.CoverCropStyle,
+		}
+	}
+
+	var document PostDocument
+	if err := json.Unmarshal([]byte(postDraftModel.DocumentJson), &document); err != nil {
+		return nil, err
+	}
+
+	var tagNames []string
+	if err := json.Unmarshal([]byte(postDraftModel.TagNamesJson), &tagNames); err != nil {
+		return nil, err
+	}
+
+	return &PostDraft{
+		PostID:    postID,
+		Title:     postDraftModel.Title,
+		Summary:   postDraftModel.Summary,
+		Cover:     cover,
+		Document:  document,
+		TagNames:  tagNames,
+		Version:   postDraftModel.DraftVersion,
+		CreatedAt: postDraftModel.CreatedAt,
+		UpdatedAt: postDraftModel.UpdatedAt,
+	}, nil
+}
+
 func (post *PostDraft) SaveDraft() error {
 	return nil
 }

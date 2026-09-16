@@ -1,7 +1,6 @@
 package model
 
 import (
-	"contentserver/internal/domain"
 	"context"
 	"database/sql"
 	"fmt"
@@ -77,11 +76,11 @@ func (m *customPostModel) UpdateForDelete(
 	return m.conn.ExecCtx(
 		ctx,
 		query,
-		uint64(domain.LifecycleDeleted),
+		uint64(1),
 		deletedAt,
 		postID,
 		authorID,
 		expectedVersion,
-		uint64(domain.LifecycleDeleted),
+		uint64(4),
 	)
 }

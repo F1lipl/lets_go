@@ -10,23 +10,16 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-type PostRepositoryInterface interface {
-	CreatePost(ctx context.Context, post *domain.Post, postDraft *domain.PostDraft) error
-	DeletePost(ctx context.Context, postID domain.PostID, authorID domain.UserID, expectedVersion uint64) error
-}
-
 type PostRepository struct {
-	conn sqlx.SqlConn
 }
 
-func NewPostRepository(conn sqlx.SqlConn) *PostRepository {
-	return &PostRepository{
-		conn: conn,
-	}
+func NewPostRepository() domain.PostRepositoryInterface {
+	return &PostRepository{}
 }
 
 func (r *PostRepository) CreatePost(
 	ctx context.Context,
+	conn sqlx.SqlConn,
 	post *domain.Post,
 	postDraft *domain.PostDraft,
 ) error {
@@ -47,7 +40,7 @@ func (r *PostRepository) CreatePost(
 		PostVersion:        post.Version,
 	}
 
-	return r.conn.TransactCtx(
+	return conn.TransactCtx(
 		ctx,
 		func(ctx context.Context, session sqlx.Session) error {
 			txConn := sqlx.NewSqlConnFromSession(session)
@@ -69,6 +62,7 @@ func (r *PostRepository) CreatePost(
 
 func (r *PostRepository) DeletePost(
 	ctx context.Context,
+	conn sqlx.SqlConn,
 	postID domain.PostID,
 	authorID domain.UserID,
 	expectedVersion uint64,
@@ -83,7 +77,7 @@ func (r *PostRepository) DeletePost(
 		return domain.ErrInvalidVersion
 	}
 
-	return r.conn.TransactCtx(
+	return conn.TransactCtx(
 		ctx,
 		func(ctx context.Context, session sqlx.Session) error {
 			txConn := sqlx.NewSqlConnFromSession(session)
@@ -126,6 +120,10 @@ func (r *PostRepository) DeletePost(
 			return nil
 		},
 	)
+}
+
+func (r *PostRepository) PublishPost(ctx context.Context, postID domain.PostID, authorID domain.UserID, expectedVersion uint64) error {
+	return nil
 }
 
 func classifyDeleteFailure(current *model.Post, authorID domain.UserID, expectedVersion uint64) error {
