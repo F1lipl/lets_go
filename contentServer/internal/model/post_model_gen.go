@@ -43,6 +43,7 @@ type (
 		Visibility          uint64         `db:"visibility"`          // 1 public, 2 followers, 3 private
 		AvailabilityStatus  uint64         `db:"availability_status"` // 1 normal, 2 pending, 3 hidden
 		PublishedRevisionId sql.NullString `db:"published_revision_id"`
+		RevisionSequence    uint64         `db:"revision_sequence"` // Latest allocated publication number; 0 before first publication
 		PostVersion         uint64         `db:"post_version"`
 		FirstPublishedAt    sql.NullTime   `db:"first_published_at"`
 		LastPublishedAt     sql.NullTime   `db:"last_published_at"`
@@ -80,14 +81,14 @@ func (m *defaultPostModel) FindOne(ctx context.Context, postId string) (*Post, e
 }
 
 func (m *defaultPostModel) Insert(ctx context.Context, data *Post) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, postRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.PostId, data.AuthorId, data.LifecycleStatus, data.Visibility, data.AvailabilityStatus, data.PublishedRevisionId, data.PostVersion, data.FirstPublishedAt, data.LastPublishedAt, data.DeletedAt)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, postRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.PostId, data.AuthorId, data.LifecycleStatus, data.Visibility, data.AvailabilityStatus, data.PublishedRevisionId, data.RevisionSequence, data.PostVersion, data.FirstPublishedAt, data.LastPublishedAt, data.DeletedAt)
 	return ret, err
 }
 
 func (m *defaultPostModel) Update(ctx context.Context, data *Post) error {
 	query := fmt.Sprintf("update %s set %s where `post_id` = ?", m.table, postRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.AuthorId, data.LifecycleStatus, data.Visibility, data.AvailabilityStatus, data.PublishedRevisionId, data.PostVersion, data.FirstPublishedAt, data.LastPublishedAt, data.DeletedAt, data.PostId)
+	_, err := m.conn.ExecCtx(ctx, query, data.AuthorId, data.LifecycleStatus, data.Visibility, data.AvailabilityStatus, data.PublishedRevisionId, data.RevisionSequence, data.PostVersion, data.FirstPublishedAt, data.LastPublishedAt, data.DeletedAt, data.PostId)
 	return err
 }
 

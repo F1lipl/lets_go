@@ -62,7 +62,8 @@ type PostDraft struct {
 	Summary string
 	Cover   *Cover
 
-	Document PostDocument
+	//Document PostDocument
+	Document string
 	TagNames []string
 
 	Version uint64
@@ -72,7 +73,7 @@ type PostDraft struct {
 	PostDraftRepository postDraftRepository
 }
 
-func CreateNewPostDraft(id PostID, title string, summary string, cover *Cover, document PostDocument, tagName []string) (*PostDraft, error) {
+func CreateNewPostDraft(id PostID, title string, summary string, cover *Cover, document string, tagName []string) (*PostDraft, error) {
 	if id.IsZero() {
 		return nil, ErrInvalidPostID
 	}
@@ -119,10 +120,10 @@ func GetPostDraft(id PostID, ctx context.Context, conn sqlx.SqlConn) (*PostDraft
 		}
 	}
 
-	var document PostDocument
-	if err := json.Unmarshal([]byte(postDraftModel.DocumentJson), &document); err != nil {
-		return nil, err
-	}
+	//var document PostDocument
+	//if err := json.Unmarshal([]byte(postDraftModel.DocumentJson), &document); err != nil {
+	//	return nil, err
+	//}
 
 	var tagNames []string
 	if err := json.Unmarshal([]byte(postDraftModel.TagNamesJson), &tagNames); err != nil {
@@ -134,7 +135,7 @@ func GetPostDraft(id PostID, ctx context.Context, conn sqlx.SqlConn) (*PostDraft
 		Title:     postDraftModel.Title,
 		Summary:   postDraftModel.Summary,
 		Cover:     cover,
-		Document:  document,
+		Document:  postDraftModel.DocumentJson,
 		TagNames:  tagNames,
 		Version:   postDraftModel.DraftVersion,
 		CreatedAt: postDraftModel.CreatedAt,

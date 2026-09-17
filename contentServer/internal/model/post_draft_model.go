@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
@@ -16,6 +17,7 @@ type (
 		postDraftModel
 		withSession(session sqlx.Session) PostDraftModel
 		UpdateWithVersion(ctx context.Context, post *PostDraft, version uint64) error
+		SelectForUpdate(ctx context.Context, id string, version uint64) (*PostDraft, error)
 	}
 
 	customPostDraftModel struct {
@@ -68,4 +70,21 @@ func (m *customPostDraftModel) UpdateWithVersion(ctx context.Context, post *Post
 		return ErrVersionConflict
 	}
 	return nil
+}
+
+func (m *customPostDraftModel) SelectForUpdate(ctx context.Context, id string, version uint64) (*PostDraft, error) {
+	query := fmt.Sprintf(
+		`select * from %s for update where post_id=? AND draft_version=?`, m.table,
+	)
+	var resp PostDraft
+	err := m.conn.QueryRowCtx(ctx, &resp, query, id, version)
+	switch {
+	case err == nil:
+		return &resp, nil
+	case errors.Is(err, sqlx.ErrNotFound):
+		return nil, ErrNotFound
+	default:
+		return nil, err
+	}
+
 }

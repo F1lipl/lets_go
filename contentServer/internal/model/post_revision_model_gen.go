@@ -54,7 +54,6 @@ type (
 		BlockCount            uint64          `db:"block_count"`
 		ImageCount            uint64          `db:"image_count"`
 		PublishedAt           time.Time       `db:"published_at"`
-		CreatedAt             time.Time       `db:"created_at"`
 	}
 )
 

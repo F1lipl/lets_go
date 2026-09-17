@@ -96,6 +96,9 @@ func NewPost(authorID UserID, visibility Visibility, repositoryInterface PostRep
 }
 
 func (post *Post) PublishPost(ctx context.Context, conn sqlx.SqlConn, expectedVersion uint64, expectedDraftVersion uint64) error {
+	if post.Version != expectedVersion {
+		return ErrInvalidVersion
+	}
 	revisionId, err := NewRevisionID()
 	if err != nil {
 		return err
@@ -107,6 +110,9 @@ func (post *Post) PublishPost(ctx context.Context, conn sqlx.SqlConn, expectedVe
 	if postDraft.Version != expectedDraftVersion {
 		return errors.New("draft version mismatch")
 	}
+	if postDraft.Cover == nil {
+		return errors.New("draft cover mismatch")
+	}
 	postRevision := CreateNewPostRevision(revisionId, post.PostID, post.RevisionSequence, postDraft.Title, postDraft.Summary, postDraft.Cover, postDraft.Document, time.Now())
-	post.postRepository
+	post.postRepository.PublishPost(ctx, PostID, expectedDraftVersion)
 }

@@ -9,12 +9,11 @@ type PostRevision struct {
 	Title          string
 	Summary        string
 	Cover          *Cover
-	Document       PostDocument
-	CreatedAt      time.Time
+	Document       string
 	PublishedAt    time.Time
 }
 
-func CreateNewPostRevision(id RevisionID, postID PostID, revisionNumber uint64, title string, summary string, cover *Cover, document PostDocument, now time.Time) *PostRevision {
+func CreateNewPostRevision(id RevisionID, postID PostID, revisionNumber uint64, title string, summary string, cover *Cover, document string, now time.Time) *PostRevision {
 	return &PostRevision{
 		RevisionId:     id,
 		PostId:         postID,
@@ -23,7 +22,6 @@ func CreateNewPostRevision(id RevisionID, postID PostID, revisionNumber uint64, 
 		Summary:        summary,
 		Cover:          cover,
 		Document:       document,
-		CreatedAt:      now,
 		PublishedAt:    now,
 	}
 }
