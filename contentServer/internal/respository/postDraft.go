@@ -15,18 +15,18 @@ import (
 type postDraftRepository struct {
 }
 
-func getImageCount(draft *domain.PostDraft) uint64 {
+func getImageCount(document domain.PostDocument) uint64 {
 	var count uint64
-	for _, block := range draft.Document.Blocks {
+	for _, block := range document.Blocks {
 		count += uint64(len(block.AssetIDs))
 	}
 	return count
 }
 
 func toPostDraft(draft *domain.PostDraft) (*model.PostDraft, error) {
-	documentJson, err := json.Marshal(draft.Document)
-	if err != nil {
-		return nil, err
+	var document domain.PostDocument
+	if err := json.Unmarshal([]byte(draft.Document), &document); err != nil || document.SchemaVersion == 0 {
+		return nil, domain.ErrDraftContentInvalid
 	}
 	tag, err := json.Marshal(draft.TagNames)
 	if err != nil {
@@ -39,12 +39,12 @@ func toPostDraft(draft *domain.PostDraft) (*model.PostDraft, error) {
 		DraftVersion:          draft.Version,
 		Title:                 draft.Title,
 		Summary:               draft.Summary,
-		DocumentSchemaVersion: draft.Document.SchemaVersion,
-		DocumentJson:          string(documentJson),
+		DocumentSchemaVersion: document.SchemaVersion,
+		DocumentJson:          draft.Document,
 		TagNamesJson:          string(tag),
 		PlainText:             "",
-		BlockCount:            uint64(len(draft.Document.Blocks)),
-		ImageCount:            getImageCount(draft),
+		BlockCount:            uint64(len(document.Blocks)),
+		ImageCount:            getImageCount(document),
 		CreatedAt:             now,
 		UpdatedAt:             now,
 	}

@@ -1,12 +1,8 @@
 package domain
 
 import (
-	"contentserver/internal/model"
-	"context"
-	"encoding/json"
+	"strings"
 	"time"
-
-	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 type Cover struct {
@@ -49,12 +45,6 @@ type ContentBlock struct {
 	AssetIDs []AssetID `json:"AssetIDs,omitempty"`
 }
 
-type postDraftRepository interface {
-	SaveDraft() error
-	PublishDraft() error
-	DeleteDraft() error
-}
-
 type PostDraft struct {
 	PostID PostID
 
@@ -62,15 +52,17 @@ type PostDraft struct {
 	Summary string
 	Cover   *Cover
 
-	//Document PostDocument
-	Document string
-	TagNames []string
+	Document              string
+	DocumentSchemaVersion uint64
+	PlainText             string
+	BlockCount            uint64
+	ImageCount            uint64
+	TagNames              []string
 
 	Version uint64
 
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
-	PostDraftRepository postDraftRepository
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func CreateNewPostDraft(id PostID, title string, summary string, cover *Cover, document string, tagName []string) (*PostDraft, error) {
@@ -90,59 +82,17 @@ func CreateNewPostDraft(id PostID, title string, summary string, cover *Cover, d
 		UpdatedAt: now,
 	}, nil
 }
-func getDraft(ctx context.Context, conn sqlx.SqlConn, id PostID) (*model.PostDraft, error) {
-	postDraftModel := model.NewPostDraftModel(conn)
-	return postDraftModel.FindOne(ctx, id.String())
-}
 
-func GetPostDraft(id PostID, ctx context.Context, conn sqlx.SqlConn) (*PostDraft, error) {
-	postDraftModel, err := getDraft(ctx, conn, id)
-	if err != nil {
-		return nil, err
+// Stored document structure is validated when saving a new draft, not reparsed here.
+func (draft *PostDraft) ValidateForPublish() error {
+	if draft.Version == 0 {
+		return ErrInvalidVersion
 	}
-
-	postID, err := ParsePostID(postDraftModel.PostId)
-	if err != nil {
-		return nil, err
+	if draft.Cover == nil || draft.Cover.AssetID.IsZero() {
+		return ErrDraftContentInvalid
 	}
-
-	var cover *Cover
-	if postDraftModel.CoverAssetId.Valid {
-		assetID, err := ParseAssetID(postDraftModel.CoverAssetId.String)
-		if err != nil {
-			return nil, err
-		}
-		cover = &Cover{
-			AssetID:   assetID,
-			FocusX:    postDraftModel.CoverFocusX.Float64,
-			FocusY:    postDraftModel.CoverFocusY.Float64,
-			CropStyle: postDraftModel.CoverCropStyle,
-		}
+	if strings.TrimSpace(draft.Document) == "" || draft.DocumentSchemaVersion == 0 {
+		return ErrDraftContentInvalid
 	}
-
-	//var document PostDocument
-	//if err := json.Unmarshal([]byte(postDraftModel.DocumentJson), &document); err != nil {
-	//	return nil, err
-	//}
-
-	var tagNames []string
-	if err := json.Unmarshal([]byte(postDraftModel.TagNamesJson), &tagNames); err != nil {
-		return nil, err
-	}
-
-	return &PostDraft{
-		PostID:    postID,
-		Title:     postDraftModel.Title,
-		Summary:   postDraftModel.Summary,
-		Cover:     cover,
-		Document:  postDraftModel.DocumentJson,
-		TagNames:  tagNames,
-		Version:   postDraftModel.DraftVersion,
-		CreatedAt: postDraftModel.CreatedAt,
-		UpdatedAt: postDraftModel.UpdatedAt,
-	}, nil
-}
-
-func (post *PostDraft) SaveDraft() error {
 	return nil
 }

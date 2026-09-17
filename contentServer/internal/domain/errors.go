@@ -6,6 +6,10 @@ import "errors"
 // transport contract. The HTTP boundary maps these errors to stable ecode
 // values.
 var (
+	ErrMediaAssetNotReady      = errors.New("media asset is not ready")
+	ErrDraftNotFound           = errors.New("draft not found")
+	ErrDraftContentInvalid     = errors.New("draft content invalid")
+	ErrPublishNotAllowed       = errors.New("publish not allowed")
 	ErrInvalidPost             = errors.New("invalid post")
 	ErrDraftPostMismatch       = errors.New("post draft does not belong to post")
 	ErrInvalidPostID           = errors.New("invalid post id")

@@ -4,7 +4,6 @@ import (
 	"contentserver/internal/domain"
 	"contentserver/internal/model"
 	"context"
-	"database/sql"
 	"errors"
 	"time"
 
@@ -51,8 +50,8 @@ func (r *PostRepository) CreatePost(
 				return err
 			}
 
-			draftRepository := newPostDraftRepository(txConn)
-			if err := draftRepository.CreatePostDraft(ctx, postDraft); err != nil {
+			draftRepository := &postDraftRepository{}
+			if err := draftRepository.CreatePostDraft(ctx, txConn, postDraft); err != nil {
 				return err
 			}
 
@@ -121,70 +120,6 @@ func (r *PostRepository) DeletePost(
 			return nil
 		},
 	)
-}
-
-func (r *PostRepository) PublishPost(ctx context.Context, conn sqlx.SqlConn, postID domain.PostID, RevisionId domain.RevisionID, now time.Time, expectedVersion, postDraftExpectedVersion uint64) error {
-	return conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
-		txConn := sqlx.NewSqlConnFromSession(session)
-		postDraftModel := model.NewPostDraftModel(txConn)
-		postDraft, err := postDraftModel.SelectForUpdate(ctx, postID.String(), postDraftExpectedVersion)
-		if err != nil {
-			return err
-		}
-		postModel := model.NewPostModel(txConn)
-		post, err := postModel.FindOneForUpdate(ctx, postID.String())
-		if err != nil {
-			if errors.Is(err, model.ErrNotFound) {
-				return domain.ErrPostNotFound
-			}
-		}
-		if post.PostVersion != expectedVersion {
-			return domain.ErrPostVersionConflict
-		}
-		postVersion := &model.PostRevision{
-			RevisionId:            RevisionId.String(),
-			PostId:                postID.String(),
-			RevisionNumber:        post.RevisionSequence + 1,
-			SourceDraftVersion:    postDraft.DraftVersion,
-			Title:                 postDraft.Title,
-			Summary:               postDraft.Summary,
-			CoverAssetId:          postDraft.CoverAssetId,
-			CoverFocusX:           postDraft.CoverFocusX,
-			CoverFocusY:           postDraft.CoverFocusY,
-			CoverCropStyle:        postDraft.CoverCropStyle,
-			DocumentSchemaVersion: postDraft.DocumentSchemaVersion,
-			DocumentJson:          postDraft.DocumentJson,
-			PlainText:             postDraft.PlainText,
-			BlockCount:            postDraft.BlockCount,
-			ImageCount:            postDraft.ImageCount,
-			PublishedAt:           now,
-		}
-		post.RevisionSequence++
-		postVersionModel := model.NewPostRevisionModel(txConn)
-		_, err = postVersionModel.Insert(ctx, postVersion)
-		if err != nil {
-			return err
-		}
-		post.LastPublishedAt = sql.NullTime{
-			Valid: true,
-			Time:  now,
-		}
-		if !post.FirstPublishedAt.Valid {
-			post.FirstPublishedAt = sql.NullTime{
-				Valid: true,
-				Time:  now,
-			}
-		}
-		post.PublishedRevisionId = sql.NullString{
-			Valid:  true,
-			String: postVersion.RevisionId,
-		}
-		err = postModel.Update(ctx, post)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
 }
 
 func classifyDeleteFailure(current *model.Post, authorID domain.UserID, expectedVersion uint64) error {

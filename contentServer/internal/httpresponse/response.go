@@ -87,6 +87,14 @@ func statusFor(code ecode.Code) int {
 
 func codeFromError(err error) ecode.Code {
 	switch {
+	case errors.Is(err, domain.ErrMediaAssetNotReady):
+		return ecode.MediaAssetNotReady
+	case errors.Is(err, domain.ErrDraftNotFound):
+		return ecode.DraftNotFound
+	case errors.Is(err, domain.ErrDraftContentInvalid):
+		return ecode.DraftContentInvalid
+	case errors.Is(err, domain.ErrPublishNotAllowed):
+		return ecode.PublishNotAllowed
 	case errors.Is(err, domain.ErrInvalidPost),
 		errors.Is(err, domain.ErrDraftPostMismatch):
 		return ecode.InvalidRequest

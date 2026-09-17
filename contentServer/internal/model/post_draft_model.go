@@ -18,6 +18,7 @@ type (
 		withSession(session sqlx.Session) PostDraftModel
 		UpdateWithVersion(ctx context.Context, post *PostDraft, version uint64) error
 		SelectForUpdate(ctx context.Context, id string, version uint64) (*PostDraft, error)
+		FindOneForUpdate(ctx context.Context, id string) (*PostDraft, error)
 	}
 
 	customPostDraftModel struct {
@@ -74,7 +75,7 @@ func (m *customPostDraftModel) UpdateWithVersion(ctx context.Context, post *Post
 
 func (m *customPostDraftModel) SelectForUpdate(ctx context.Context, id string, version uint64) (*PostDraft, error) {
 	query := fmt.Sprintf(
-		`select * from %s for update where post_id=? AND draft_version=?`, m.table,
+		`select * from %s where post_id=? AND draft_version=? for update`, m.table,
 	)
 	var resp PostDraft
 	err := m.conn.QueryRowCtx(ctx, &resp, query, id, version)
@@ -87,4 +88,13 @@ func (m *customPostDraftModel) SelectForUpdate(ctx context.Context, id string, v
 		return nil, err
 	}
 
+}
+
+func (m *customPostDraftModel) FindOneForUpdate(ctx context.Context, id string) (*PostDraft, error) {
+	var row PostDraft
+	query := fmt.Sprintf("select %s from %s where post_id=? for update", postDraftRows, m.table)
+	if err := m.conn.QueryRowCtx(ctx, &row, query, id); err != nil {
+		return nil, err
+	}
+	return &row, nil
 }
