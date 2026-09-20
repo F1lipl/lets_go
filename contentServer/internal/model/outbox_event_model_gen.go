@@ -42,11 +42,11 @@ type (
 		AggregateId   string       `db:"aggregate_id"`
 		EventType     string       `db:"event_type"`
 		PayloadJson   string       `db:"payload_json"`
-		Status        uint64       `db:"status"` // 1 pending, 2 publishing, 3 published, 4 failed
+		Status        uint64       `db:"status"` // 1 pending dispatch, 2 reserved, 3 dispatched, 4 dispatch failed
 		AttemptCount  uint64       `db:"attempt_count"`
 		NextAttemptAt time.Time    `db:"next_attempt_at"`
 		OccurredAt    time.Time    `db:"occurred_at"`
-		PublishedAt   sql.NullTime `db:"published_at"`
+		PublishedAt   sql.NullTime `db:"published_at"` // Fan-out committed at; does not mean all consumers completed
 		CreatedAt     time.Time    `db:"created_at"`
 	}
 )

@@ -1,0 +1,99 @@
+package event
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"sync"
+	"time"
+
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+)
+
+var (
+	ErrClaimLost      = errors.New("task claim lost")
+	ErrWorkerStopped  = errors.New("worker is not running")
+	ErrAlreadyRunning = errors.New("worker can only run once")
+	ErrSuperseded     = errors.New("task superseded")
+)
+
+type permanentError struct{ error }
+
+func Permanent(err error) error {
+	if err == nil {
+		return nil
+	}
+	return &permanentError{err}
+}
+func (e *permanentError) Unwrap() error { return e.error }
+func IsPermanent(err error) bool        { var target *permanentError; return errors.As(err, &target) }
+
+type Event struct {
+	EventId       string
+	EventType     string
+	SchemaVersion uint64
+	OccurredAt    time.Time
+	Payload       json.RawMessage
+}
+type TaskContext struct {
+	EventId       string
+	ConsumerName  string
+	EventType     string
+	SchemaVersion uint64
+	Payload       json.RawMessage
+}
+type Taskcontext = TaskContext
+
+// ClaimedTask is created only after the scheduler commits its claim transaction.
+type ClaimedTask struct {
+	Context     TaskContext
+	ClaimToken  string
+	LockedUntil time.Time
+}
+type TaskHandler interface {
+	Handle(context.Context, sqlx.Session, *TaskContext) error
+}
+type TaskHandlerFunc func(context.Context, sqlx.Session, *TaskContext) error
+
+func (f TaskHandlerFunc) Handle(ctx context.Context, tx sqlx.Session, task *TaskContext) error {
+	return f(ctx, tx, task)
+}
+
+type TaskRepository interface {
+	Execute(context.Context, ClaimedTask, func(context.Context, sqlx.Session, *TaskContext) error) error
+	ScheduleRetry(context.Context, ClaimedTask, error, time.Duration, bool) error
+}
+
+type TaskController struct {
+	mu      sync.RWMutex
+	taskMap map[string]TaskHandler
+}
+
+func NewTaskController() *TaskController {
+	return &TaskController{taskMap: make(map[string]TaskHandler)}
+}
+func (c *TaskController) Register(name string, handler TaskHandler) error {
+	if name == "" || handler == nil {
+		return errors.New("consumer and handler are required")
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if _, exists := c.taskMap[name]; exists {
+		return fmt.Errorf("handler already registered: %s", name)
+	}
+	c.taskMap[name] = handler
+	return nil
+}
+func (c *TaskController) Handle(ctx context.Context, tx sqlx.Session, task *TaskContext) error {
+	if task == nil {
+		return Permanent(errors.New("nil task"))
+	}
+	c.mu.RLock()
+	handler, ok := c.taskMap[task.ConsumerName]
+	c.mu.RUnlock()
+	if !ok {
+		return fmt.Errorf("handler not registered: %s", task.ConsumerName)
+	}
+	return handler.Handle(ctx, tx, task)
+}
