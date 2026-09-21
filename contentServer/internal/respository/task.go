@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"contentserver/internal/event"
+	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -18,6 +19,87 @@ type TaskRepository struct{ conn sqlx.SqlConn }
 func NewTaskRepository(conn sqlx.SqlConn) *TaskRepository { return &TaskRepository{conn: conn} }
 
 var _ event.TaskRepository = (*TaskRepository)(nil)
+var _ event.TaskClaimer = (*TaskRepository)(nil)
+
+func (r *TaskRepository) Claim(ctx context.Context, limit int, lease time.Duration) ([]event.ClaimedTask, error) {
+	if limit <= 0 {
+		return nil, nil
+	}
+	if lease <= 0 {
+		return nil, errors.New("task lease must be positive")
+	}
+	// Keep each claim transaction short even if a caller is misconfigured.
+	if limit > 100 {
+		limit = 100
+	}
+
+	claimed := make([]event.ClaimedTask, 0, limit)
+	err := r.conn.TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
+		var rows []struct {
+			EventID      string `db:"event_id"`
+			ConsumerName string `db:"consumer_name"`
+		}
+		if err := tx.QueryRowsCtx(ctx, &rows, `
+SELECT event_id, consumer_name
+FROM event_delivery
+WHERE status = 1
+  AND next_attempt_at <= NOW(3)
+  AND attempt_count < max_attempts
+ORDER BY next_attempt_at, event_id, consumer_name
+LIMIT ?
+FOR UPDATE SKIP LOCKED`, limit); err != nil {
+			return err
+		}
+
+		for _, row := range rows {
+			token := uuid.NewString()
+			result, err := tx.ExecCtx(ctx, `
+UPDATE event_delivery
+SET status = 2,
+    attempt_count = attempt_count + 1,
+    claim_token = ?,
+    locked_until = TIMESTAMPADD(MICROSECOND, ?, NOW(3)),
+    completed_at = NULL
+WHERE event_id = ?
+  AND consumer_name = ?
+  AND status = 1
+  AND next_attempt_at <= NOW(3)
+  AND attempt_count < max_attempts`, token, lease.Microseconds(), row.EventID, row.ConsumerName)
+			if err != nil {
+				return err
+			}
+			affected, err := result.RowsAffected()
+			if err != nil {
+				return err
+			}
+			if affected != 1 {
+				return errors.New("locked task could not be claimed")
+			}
+			var leaseRow struct {
+				LockedUntil time.Time `db:"locked_until"`
+			}
+			if err := tx.QueryRowCtx(ctx, &leaseRow, `
+SELECT locked_until
+FROM event_delivery
+WHERE event_id = ? AND consumer_name = ?`, row.EventID, row.ConsumerName); err != nil {
+				return err
+			}
+			claimed = append(claimed, event.ClaimedTask{
+				Context: event.TaskContext{
+					EventId:      row.EventID,
+					ConsumerName: row.ConsumerName,
+				},
+				ClaimToken:  token,
+				LockedUntil: leaseRow.LockedUntil,
+			})
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return claimed, nil
+}
 
 func (r *TaskRepository) Execute(ctx context.Context, task event.ClaimedTask, apply func(context.Context, sqlx.Session, *event.TaskContext) error) error {
 	return r.conn.TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {

@@ -24,6 +24,13 @@ type Worker struct {
 	running        bool
 	stopped        chan struct{}
 	ready          chan struct{}
+	spaceAvailable chan struct{}
+}
+
+type WorkerQueueStats struct {
+	Queued    int
+	Capacity  int
+	Available int
 }
 
 func NewWorker(count int, repo TaskRepository, handler TaskHandler) (*Worker, error) {
@@ -32,7 +39,8 @@ func NewWorker(count int, repo TaskRepository, handler TaskHandler) (*Worker, er
 	}
 	return &Worker{count: count, queue: make(chan ClaimedTask, count),
 		repo: repo, handler: handler, timeout: 10 * time.Second,
-		cleanupTimeout: 3 * time.Second, retryDelay: time.Second, stopped: make(chan struct{}), ready: make(chan struct{})}, nil
+		cleanupTimeout: 3 * time.Second, retryDelay: time.Second, stopped: make(chan struct{}), ready: make(chan struct{}),
+		spaceAvailable: make(chan struct{}, 1)}, nil
 }
 
 // Run blocks until cancellation and waits for all workers. Call once.
@@ -59,6 +67,21 @@ func (w *Worker) Run(ctx context.Context) error {
 // Ready is closed once Run has started. Done closes after all workers exit.
 func (w *Worker) Ready() <-chan struct{} { return w.ready }
 func (w *Worker) Done() <-chan struct{}  { return w.stopped }
+func (w *Worker) SpaceAvailable() <-chan struct{} {
+	return w.spaceAvailable
+}
+
+// QueueStats is an instantaneous observation intended for scheduling and
+// metrics. Scheduler must remain the only producer when it relies on Available.
+func (w *Worker) QueueStats() WorkerQueueStats {
+	queued := len(w.queue)
+	capacity := cap(w.queue)
+	return WorkerQueueStats{
+		Queued:    queued,
+		Capacity:  capacity,
+		Available: capacity - queued,
+	}
+}
 
 // Submit applies backpressure. It does not claim tasks or start transactions.
 // On rejection the scheduler must release the claim or let it expire.
@@ -92,6 +115,7 @@ func (w *Worker) work(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case task := <-w.queue:
+			w.notifySpaceAvailable()
 			if ctx.Err() != nil {
 				return
 			} // queued claims are recovered by lease expiry
@@ -99,6 +123,14 @@ func (w *Worker) work(ctx context.Context) {
 		}
 	}
 }
+
+func (w *Worker) notifySpaceAvailable() {
+	select {
+	case w.spaceAvailable <- struct{}{}:
+	default:
+	}
+}
+
 func (w *Worker) execute(parent context.Context, task ClaimedTask) {
 	ctx, cancel := context.WithTimeout(parent, w.timeout)
 	err := w.executeTransaction(ctx, task)

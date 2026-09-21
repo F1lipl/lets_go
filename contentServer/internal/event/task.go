@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
@@ -65,20 +64,27 @@ type TaskRepository interface {
 	ScheduleRetry(context.Context, ClaimedTask, error, time.Duration, bool) error
 }
 
+// TaskClaimer atomically transfers ready deliveries to the processing state.
+// Claim must commit before returning tasks to the scheduler.
+type TaskClaimer interface {
+	Claim(context.Context, int, time.Duration) ([]ClaimedTask, error)
+}
+
 type TaskController struct {
-	mu      sync.RWMutex
 	taskMap map[string]TaskHandler
 }
 
 func NewTaskController() *TaskController {
 	return &TaskController{taskMap: make(map[string]TaskHandler)}
 }
+
+// Register must only be called during service initialization, before the
+// controller is handed to a running Worker. After startup taskMap is immutable,
+// so Handle can safely perform lock-free concurrent reads.
 func (c *TaskController) Register(name string, handler TaskHandler) error {
 	if name == "" || handler == nil {
 		return errors.New("consumer and handler are required")
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	if _, exists := c.taskMap[name]; exists {
 		return fmt.Errorf("handler already registered: %s", name)
 	}
@@ -89,9 +95,7 @@ func (c *TaskController) Handle(ctx context.Context, tx sqlx.Session, task *Task
 	if task == nil {
 		return Permanent(errors.New("nil task"))
 	}
-	c.mu.RLock()
 	handler, ok := c.taskMap[task.ConsumerName]
-	c.mu.RUnlock()
 	if !ok {
 		return fmt.Errorf("handler not registered: %s", task.ConsumerName)
 	}

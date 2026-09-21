@@ -88,3 +88,75 @@ func TestTaskExecutionMySQL(t *testing.T) {
 		t.Fatalf("old retry modified completed task: %v", err)
 	}
 }
+
+func TestTaskClaimMySQL(t *testing.T) {
+	dsn := os.Getenv("CONTENT_MODEL_TEST_DSN")
+	if dsn == "" {
+		t.Skip("set CONTENT_MODEL_TEST_DSN")
+	}
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	conn := sqlx.NewSqlConnFromDB(db)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	ids := []string{uuid.NewString(), uuid.NewString(), uuid.NewString()}
+	defer func() {
+		for _, id := range ids {
+			_, _ = conn.ExecCtx(context.Background(), "DELETE FROM event_delivery WHERE event_id=?", id)
+			_, _ = conn.ExecCtx(context.Background(), "DELETE FROM outbox_event WHERE event_id=?", id)
+		}
+	}()
+	for i, id := range ids {
+		if _, err := conn.ExecCtx(ctx, "INSERT INTO outbox_event(event_id,aggregate_type,aggregate_id,event_type,payload_json,occurred_at) VALUES (?,'Test',?,'Test','{\"schemaVersion\":1}',NOW(3))", id, id); err != nil {
+			t.Fatal(err)
+		}
+		nextAttempt := "NOW(3)"
+		if i == 2 {
+			nextAttempt = "TIMESTAMPADD(HOUR,1,NOW(3))"
+		}
+		if _, err := conn.ExecCtx(ctx, "INSERT INTO event_delivery(event_id,consumer_name,next_attempt_at) VALUES (?,'test',"+nextAttempt+")", id); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	repo := NewTaskRepository(conn)
+	first, err := repo.Claim(ctx, 1, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := repo.Claim(ctx, 2, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(first) != 1 || len(second) != 1 {
+		t.Fatalf("claimed batches = %d and %d, want 1 and 1", len(first), len(second))
+	}
+	if first[0].Context.EventId == second[0].Context.EventId {
+		t.Fatal("same delivery was claimed twice")
+	}
+	if first[0].ClaimToken == "" || second[0].ClaimToken == "" {
+		t.Fatal("claim token was not created")
+	}
+	if !first[0].LockedUntil.After(time.Now()) || !second[0].LockedUntil.After(time.Now()) {
+		t.Fatal("claim lease was not persisted")
+	}
+
+	var processing int
+	if err := conn.QueryRowCtx(ctx, &processing, "SELECT COUNT(*) FROM event_delivery WHERE event_id IN (?,?,?) AND status=2 AND attempt_count=1 AND claim_token IS NOT NULL AND locked_until IS NOT NULL", ids[0], ids[1], ids[2]); err != nil {
+		t.Fatal(err)
+	}
+	if processing != 2 {
+		t.Fatalf("processing deliveries = %d, want 2", processing)
+	}
+	remaining, err := repo.Claim(ctx, 3, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(remaining) != 0 {
+		t.Fatalf("future delivery was claimed: %d", len(remaining))
+	}
+}
