@@ -10,6 +10,8 @@ import (
 	"unicode/utf8"
 
 	"contentserver/internal/event"
+	"contentserver/internal/model"
+
 	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
@@ -20,6 +22,9 @@ func NewTaskRepository(conn sqlx.SqlConn) *TaskRepository { return &TaskReposito
 
 var _ event.TaskRepository = (*TaskRepository)(nil)
 var _ event.TaskClaimer = (*TaskRepository)(nil)
+var _ event.TaskRecoverer = (*TaskRepository)(nil)
+
+const expiredTaskError = "task processing lease expired"
 
 func (r *TaskRepository) Claim(ctx context.Context, limit int, lease time.Duration) ([]event.ClaimedTask, error) {
 	if limit <= 0 {
@@ -35,62 +40,29 @@ func (r *TaskRepository) Claim(ctx context.Context, limit int, lease time.Durati
 
 	claimed := make([]event.ClaimedTask, 0, limit)
 	err := r.conn.TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
-		var rows []struct {
-			EventID      string `db:"event_id"`
-			ConsumerName string `db:"consumer_name"`
-		}
-		if err := tx.QueryRowsCtx(ctx, &rows, `
-SELECT event_id, consumer_name
-FROM event_delivery
-WHERE status = 1
-  AND next_attempt_at <= NOW(3)
-  AND attempt_count < max_attempts
-ORDER BY next_attempt_at, event_id, consumer_name
-LIMIT ?
-FOR UPDATE SKIP LOCKED`, limit); err != nil {
+		txConn := sqlx.NewSqlConnFromSession(tx)
+		deliveryModel := model.NewEventDeliveryModel(txConn)
+		rows, err := deliveryModel.FindReadyForUpdate(ctx, limit)
+		if err != nil {
 			return err
 		}
 
 		for _, row := range rows {
 			token := uuid.NewString()
-			result, err := tx.ExecCtx(ctx, `
-UPDATE event_delivery
-SET status = 2,
-    attempt_count = attempt_count + 1,
-    claim_token = ?,
-    locked_until = TIMESTAMPADD(MICROSECOND, ?, NOW(3)),
-    completed_at = NULL
-WHERE event_id = ?
-  AND consumer_name = ?
-  AND status = 1
-  AND next_attempt_at <= NOW(3)
-  AND attempt_count < max_attempts`, token, lease.Microseconds(), row.EventID, row.ConsumerName)
-			if err != nil {
-				return err
-			}
-			affected, err := result.RowsAffected()
-			if err != nil {
-				return err
-			}
-			if affected != 1 {
+			lockedUntil, err := deliveryModel.MarkProcessing(ctx, row.EventId, row.ConsumerName, token, lease)
+			if errors.Is(err, model.ErrNotFound) {
 				return errors.New("locked task could not be claimed")
 			}
-			var leaseRow struct {
-				LockedUntil time.Time `db:"locked_until"`
-			}
-			if err := tx.QueryRowCtx(ctx, &leaseRow, `
-SELECT locked_until
-FROM event_delivery
-WHERE event_id = ? AND consumer_name = ?`, row.EventID, row.ConsumerName); err != nil {
+			if err != nil {
 				return err
 			}
 			claimed = append(claimed, event.ClaimedTask{
 				Context: event.TaskContext{
-					EventId:      row.EventID,
+					EventId:      row.EventId,
 					ConsumerName: row.ConsumerName,
 				},
 				ClaimToken:  token,
-				LockedUntil: leaseRow.LockedUntil,
+				LockedUntil: lockedUntil,
 			})
 		}
 		return nil
@@ -103,35 +75,30 @@ WHERE event_id = ? AND consumer_name = ?`, row.EventID, row.ConsumerName); err !
 
 func (r *TaskRepository) Execute(ctx context.Context, task event.ClaimedTask, apply func(context.Context, sqlx.Session, *event.TaskContext) error) error {
 	return r.conn.TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
-		var row struct {
-			Status     uint64         `db:"status"`
-			Token      sql.NullString `db:"claim_token"`
-			LeaseValid bool           `db:"lease_valid"`
-		}
-		err := tx.QueryRowCtx(ctx, &row, "SELECT status,claim_token,COALESCE(locked_until>NOW(3),0) AS lease_valid FROM event_delivery WHERE event_id=? AND consumer_name=? FOR UPDATE", task.Context.EventId, task.Context.ConsumerName)
-		if errors.Is(err, sqlx.ErrNotFound) {
+		txConn := sqlx.NewSqlConnFromSession(tx)
+		deliveryModel := model.NewEventDeliveryModel(txConn)
+		row, err := deliveryModel.FindClaimStateForUpdate(ctx, task.Context.EventId, task.Context.ConsumerName)
+		if errors.Is(err, model.ErrNotFound) {
 			return event.ErrClaimLost
 		}
 		if err != nil {
 			return err
 		}
-		if row.Status != 2 || !row.Token.Valid || row.Token.String != task.ClaimToken || !row.LeaseValid {
+		if row.Status != 2 || !row.ClaimToken.Valid || row.ClaimToken.String != task.ClaimToken || !row.LeaseValid {
 			return event.ErrClaimLost
 		}
-		var source struct {
-			Type    string `db:"event_type"`
-			Payload string `db:"payload_json"`
-		}
-		if err := tx.QueryRowCtx(ctx, &source, "SELECT event_type,payload_json FROM outbox_event WHERE event_id=?", task.Context.EventId); err != nil {
+		outboxModel := model.NewOutboxEventModel(txConn)
+		source, err := outboxModel.FindOne(ctx, task.Context.EventId)
+		if err != nil {
 			return err
 		}
 		var header struct {
 			SchemaVersion uint64 `json:"schemaVersion"`
 		}
-		if err := json.Unmarshal([]byte(source.Payload), &header); err != nil {
+		if err := json.Unmarshal([]byte(source.PayloadJson), &header); err != nil {
 			return event.Permanent(err)
 		}
-		input := &event.TaskContext{EventId: task.Context.EventId, ConsumerName: task.Context.ConsumerName, EventType: source.Type, SchemaVersion: header.SchemaVersion, Payload: json.RawMessage(source.Payload)}
+		input := &event.TaskContext{EventId: task.Context.EventId, ConsumerName: task.Context.ConsumerName, EventType: source.EventType, SchemaVersion: header.SchemaVersion, Payload: json.RawMessage(source.PayloadJson)}
 		err = apply(ctx, tx, input)
 		status := 3
 		if errors.Is(err, event.ErrSuperseded) {
@@ -144,7 +111,7 @@ func (r *TaskRepository) Execute(ctx context.Context, task event.ClaimedTask, ap
 		}
 		// The task row is locked for this entire execution transaction. An expiry
 		// reclaimer cannot transfer ownership while these business writes commit.
-		result, err := tx.ExecCtx(ctx, "UPDATE event_delivery SET status=?,claim_token=NULL,locked_until=NULL,completed_at=NOW(3),last_error='' WHERE event_id=? AND consumer_name=? AND status=2 AND claim_token=?", status, input.EventId, input.ConsumerName, task.ClaimToken)
+		result, err := deliveryModel.MarkTerminal(ctx, input.EventId, input.ConsumerName, task.ClaimToken, uint64(status))
 		if err != nil {
 			return err
 		}
@@ -161,12 +128,10 @@ func (r *TaskRepository) Execute(ctx context.Context, task event.ClaimedTask, ap
 
 func (r *TaskRepository) ScheduleRetry(ctx context.Context, task event.ClaimedTask, cause error, base time.Duration, permanent bool) error {
 	return r.conn.TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
-		var row struct {
-			Attempts uint64 `db:"attempt_count"`
-			Max      uint64 `db:"max_attempts"`
-		}
-		err := tx.QueryRowCtx(ctx, &row, "SELECT attempt_count,max_attempts FROM event_delivery WHERE event_id=? AND consumer_name=? AND status=2 AND claim_token=? FOR UPDATE", task.Context.EventId, task.Context.ConsumerName, task.ClaimToken)
-		if errors.Is(err, sqlx.ErrNotFound) {
+		txConn := sqlx.NewSqlConnFromSession(tx)
+		deliveryModel := model.NewEventDeliveryModel(txConn)
+		row, err := deliveryModel.FindRetryStateForUpdate(ctx, task.Context.EventId, task.Context.ConsumerName, task.ClaimToken)
+		if errors.Is(err, model.ErrNotFound) {
 			return event.ErrClaimLost
 		}
 		if err != nil {
@@ -177,7 +142,7 @@ func (r *TaskRepository) ScheduleRetry(ctx context.Context, task event.ClaimedTa
 			base = time.Second
 		}
 		delay := base
-		for i := uint64(1); i < row.Attempts && delay < 5*time.Minute; i++ {
+		for i := uint64(1); i < row.AttemptCount && delay < 5*time.Minute; i++ {
 			delay *= 2
 		}
 		if delay > 5*time.Minute {
@@ -195,11 +160,69 @@ func (r *TaskRepository) ScheduleRetry(ctx context.Context, task event.ClaimedTa
 		if len(runes) > 1000 {
 			message = string(runes[:1000])
 		}
-		if permanent || row.Attempts >= row.Max {
-			_, err = tx.ExecCtx(ctx, "UPDATE event_delivery SET status=5,claim_token=NULL,locked_until=NULL,completed_at=NOW(3),last_error=? WHERE event_id=? AND consumer_name=? AND status=2 AND claim_token=?", message, task.Context.EventId, task.Context.ConsumerName, task.ClaimToken)
+		var result sql.Result
+		if permanent || row.AttemptCount >= row.MaxAttempts {
+			result, err = deliveryModel.MarkFailed(ctx, task.Context.EventId, task.Context.ConsumerName, task.ClaimToken, message)
 		} else {
-			_, err = tx.ExecCtx(ctx, "UPDATE event_delivery SET status=1,claim_token=NULL,locked_until=NULL,completed_at=NULL,next_attempt_at=TIMESTAMPADD(MICROSECOND,?,NOW(3)),last_error=? WHERE event_id=? AND consumer_name=? AND status=2 AND claim_token=?", delay.Microseconds(), message, task.Context.EventId, task.Context.ConsumerName, task.ClaimToken)
+			result, err = deliveryModel.MarkPending(ctx, task.Context.EventId, task.Context.ConsumerName, task.ClaimToken, message, delay)
 		}
-		return err
+		if err != nil {
+			return err
+		}
+		affected, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if affected != 1 {
+			return event.ErrClaimLost
+		}
+		return nil
 	})
+}
+
+func (r *TaskRepository) RecoverExpired(ctx context.Context, limit int) (event.RecoveryResult, error) {
+	if limit <= 0 {
+		return event.RecoveryResult{}, nil
+	}
+	if limit > 500 {
+		limit = 500
+	}
+
+	var recovered event.RecoveryResult
+	err := r.conn.TransactCtx(ctx, func(ctx context.Context, tx sqlx.Session) error {
+		deliveryModel := model.NewEventDeliveryModel(sqlx.NewSqlConnFromSession(tx))
+		rows, err := deliveryModel.FindExpiredForUpdate(ctx, limit)
+		if err != nil {
+			return err
+		}
+		recovered.Scanned = len(rows)
+		for _, row := range rows {
+			var result sql.Result
+			if row.AttemptCount >= row.MaxAttempts {
+				result, err = deliveryModel.MarkExpiredFailed(ctx, row.EventId, row.ConsumerName, row.ClaimToken, expiredTaskError)
+			} else {
+				result, err = deliveryModel.MarkExpiredPending(ctx, row.EventId, row.ConsumerName, row.ClaimToken, expiredTaskError)
+			}
+			if err != nil {
+				return err
+			}
+			affected, err := result.RowsAffected()
+			if err != nil {
+				return err
+			}
+			if affected != 1 {
+				return errors.New("expired task recovery lost its claim")
+			}
+			if row.AttemptCount >= row.MaxAttempts {
+				recovered.Failed++
+			} else {
+				recovered.Recovered++
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return event.RecoveryResult{}, err
+	}
+	return recovered, nil
 }

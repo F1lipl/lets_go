@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS `event_delivery` (
   `event_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `consumer_name` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `status` TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '1 pending, 2 processing, 3 succeeded, 4 superseded, 5 failed',
-  `attempt_count` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Increment on every claim, including recovery after a crash',
+  `attempt_count` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Increment on every claim; an expired task increments again only when re-claimed',
   `max_attempts` INT UNSIGNED NOT NULL DEFAULT 10,
   `next_attempt_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `claim_token` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NULL,

@@ -70,6 +70,20 @@ type TaskClaimer interface {
 	Claim(context.Context, int, time.Duration) ([]ClaimedTask, error)
 }
 
+// RecoveryResult describes one committed recovery batch. A recovered task is
+// ready to be claimed again; a failed task exhausted its configured attempts.
+type RecoveryResult struct {
+	Scanned   int
+	Recovered int
+	Failed    int
+}
+
+// TaskRecoverer transfers deliveries whose processing lease expired back to
+// pending, or to failed when their attempt budget has been exhausted.
+type TaskRecoverer interface {
+	RecoverExpired(context.Context, int) (RecoveryResult, error)
+}
+
 type TaskController struct {
 	taskMap map[string]TaskHandler
 }
