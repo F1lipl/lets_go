@@ -17,13 +17,17 @@ type Worker struct {
 	repo           TaskRepository
 	handler        TaskHandler
 	timeout        time.Duration
+	shutdownGrace  time.Duration
 	cleanupTimeout time.Duration
 	retryDelay     time.Duration
 	mu             sync.Mutex
 	started        bool
 	running        bool
+	accepting      bool
 	stopped        chan struct{}
 	ready          chan struct{}
+	draining       chan struct{}
+	drainOnce      sync.Once
 	spaceAvailable chan struct{}
 }
 
@@ -39,29 +43,65 @@ func NewWorker(count int, repo TaskRepository, handler TaskHandler) (*Worker, er
 	}
 	return &Worker{count: count, queue: make(chan ClaimedTask, count),
 		repo: repo, handler: handler, timeout: 10 * time.Second,
-		cleanupTimeout: 3 * time.Second, retryDelay: time.Second, stopped: make(chan struct{}), ready: make(chan struct{}),
+		shutdownGrace: 25 * time.Second, cleanupTimeout: 3 * time.Second, retryDelay: time.Second,
+		stopped: make(chan struct{}), ready: make(chan struct{}), draining: make(chan struct{}),
 		spaceAvailable: make(chan struct{}, 1)}, nil
 }
 
-// Run blocks until cancellation and waits for all workers. Call once.
-// Handlers must respect ctx and only perform short database work on the supplied tx.
+// Run blocks until cancellation. Cancellation first stops new submissions and
+// lets workers drain already claimed tasks. Only after shutdownGrace expires is
+// the execution context canceled. Handlers must respect ctx and only perform
+// short database work on the supplied transaction.
 func (w *Worker) Run(ctx context.Context) error {
 	w.mu.Lock()
 	if w.started {
 		w.mu.Unlock()
 		return ErrAlreadyRunning
 	}
-	w.started, w.running = true, true
+	w.started, w.running, w.accepting = true, true, true
 	close(w.ready)
 	w.mu.Unlock()
-	defer func() { w.mu.Lock(); w.running = false; close(w.stopped); w.mu.Unlock() }()
+	defer func() {
+		// Close first so a submitter currently holding mu while waiting on a full
+		// queue can unblock instead of deadlocking shutdown.
+		close(w.stopped)
+		w.mu.Lock()
+		w.running, w.accepting = false, false
+		w.mu.Unlock()
+	}()
+
+	executionCtx, forceStop := context.WithCancel(context.WithoutCancel(ctx))
+	defer forceStop()
 	var wg sync.WaitGroup
 	for i := 0; i < w.count; i++ {
 		wg.Add(1)
-		go func() { defer wg.Done(); w.work(ctx) }()
+		go func() { defer wg.Done(); w.work(executionCtx) }()
 	}
-	wg.Wait()
+	workersDone := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(workersDone)
+	}()
+
+	<-ctx.Done()
+	w.stopAcceptingAndDrain()
+	timer := time.NewTimer(w.shutdownGrace)
+	defer timer.Stop()
+	select {
+	case <-workersDone:
+	case <-timer.C:
+		logx.WithContext(ctx).Errorf("worker graceful shutdown timed out after %s; canceling active handlers", w.shutdownGrace)
+		forceStop()
+		<-workersDone
+	}
 	return ctx.Err()
+}
+
+func (w *Worker) stopAcceptingAndDrain() {
+	w.mu.Lock()
+	w.accepting = false
+	w.drainOnce.Do(func() { close(w.draining) })
+	w.mu.Unlock()
 }
 
 // Ready is closed once Run has started. Done closes after all workers exit.
@@ -90,9 +130,8 @@ func (w *Worker) Submit(ctx context.Context, task ClaimedTask) error {
 		return errors.New("task key and claim token are required")
 	}
 	w.mu.Lock()
-	running := w.running
-	w.mu.Unlock()
-	if !running {
+	defer w.mu.Unlock()
+	if !w.running || !w.accepting {
 		return ErrWorkerStopped
 	}
 	task.Context.Payload = append([]byte(nil), task.Context.Payload...)
@@ -114,12 +153,32 @@ func (w *Worker) work(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
+		case <-w.draining:
+			w.drain(ctx)
+			return
 		case task := <-w.queue:
 			w.notifySpaceAvailable()
 			if ctx.Err() != nil {
 				return
 			} // queued claims are recovered by lease expiry
 			w.execute(ctx, task)
+		}
+	}
+}
+
+func (w *Worker) drain(ctx context.Context) {
+	for {
+		if ctx.Err() != nil {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case task := <-w.queue:
+			w.notifySpaceAvailable()
+			w.execute(ctx, task)
+		default:
+			return
 		}
 	}
 }

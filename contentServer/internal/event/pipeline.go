@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -17,18 +18,20 @@ type TaskStore interface {
 }
 
 type EventPipelineConfig struct {
-	WorkerCount int
-	Scheduler   SchedulerConfig
-	Dispatcher  DispatcherConfig
-	Reclaimer   ReclaimerConfig
+	WorkerCount        int
+	WorkerDrainTimeout time.Duration
+	Scheduler          SchedulerConfig
+	Dispatcher         DispatcherConfig
+	Reclaimer          ReclaimerConfig
 }
 
 func DefaultEventPipelineConfig() EventPipelineConfig {
 	return EventPipelineConfig{
-		WorkerCount: 4,
-		Scheduler:   DefaultSchedulerConfig(),
-		Dispatcher:  DefaultDispatcherConfig(),
-		Reclaimer:   DefaultReclaimerConfig(),
+		WorkerCount:        4,
+		WorkerDrainTimeout: 25 * time.Second,
+		Scheduler:          DefaultSchedulerConfig(),
+		Dispatcher:         DefaultDispatcherConfig(),
+		Reclaimer:          DefaultReclaimerConfig(),
 	}
 }
 
@@ -57,17 +60,22 @@ func NewEventPipeline(
 	if dispatchRepo == nil || taskStore == nil || registry == nil || handler == nil {
 		return nil, errors.New("dispatch repository, task store, consumer registry and task handler are required")
 	}
-	if config.WorkerCount < 0 {
-		return nil, errors.New("worker count cannot be negative")
+	if config.WorkerCount < 0 || config.WorkerDrainTimeout < 0 {
+		return nil, errors.New("worker configuration cannot be negative")
 	}
+	defaults := DefaultEventPipelineConfig()
 	if config.WorkerCount == 0 {
-		config.WorkerCount = DefaultEventPipelineConfig().WorkerCount
+		config.WorkerCount = defaults.WorkerCount
+	}
+	if config.WorkerDrainTimeout == 0 {
+		config.WorkerDrainTimeout = defaults.WorkerDrainTimeout
 	}
 
 	worker, err := NewWorker(config.WorkerCount, taskStore, handler)
 	if err != nil {
 		return nil, err
 	}
+	worker.shutdownGrace = config.WorkerDrainTimeout
 	scheduler, err := NewScheduler(taskStore, worker, config.Scheduler)
 	if err != nil {
 		return nil, err

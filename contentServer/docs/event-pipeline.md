@@ -47,6 +47,20 @@ pipeline.NotifyOutboxCommitted()
 
 流水线内部字段不导出。外部不能绕过 Dispatcher 或 Scheduler 直接投递任务，只能启动完整流水线、等待生命周期信号以及发送 outbox 已提交提示。
 
+## 优雅退出
+
+取消传给 `EventPipeline.Run` 的 Context 后，Dispatcher、Scheduler 和 Reclaimer 会停止产生及领取新任务。Worker 随后拒绝新的 `Submit`，但不会立即取消正在执行的 Handler，而是继续处理已经领取并进入本地队列的任务。
+
+默认最多等待 25 秒：
+
+```go
+config.WorkerDrainTimeout = 25 * time.Second
+```
+
+在期限内完成的任务照常提交。超过期限后，Worker 才会取消仍在执行的 Handler；Handler 事务应回滚，Worker 会在独立的短 Context 中尝试把任务恢复为 `pending`。仍留在队列中但尚未开始的任务由租约过期恢复。
+
+所有 Handler 必须使用传入的 Context 执行数据库操作，并且单次处理时间应小于 Scheduler 的 `LeaseDuration`。Go 不能强制终止一个完全忽略 Context 的 goroutine。
+
 ## 过期任务恢复
 
 Scheduler 领取任务时会将 delivery 改为 `processing`，写入唯一的 `claim_token` 和 `locked_until`。Reclaimer 启动时立即检查一次，之后默认每 5 秒检查一批已经超过领取期限的任务：
