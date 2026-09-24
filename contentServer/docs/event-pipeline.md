@@ -55,9 +55,10 @@ pipeline.NotifyOutboxCommitted()
 
 ```go
 config.WorkerDrainTimeout = 25 * time.Second
+config.WorkerForceStopTimeout = 5 * time.Second
 ```
 
-在期限内完成的任务照常提交。超过期限后，Worker 才会取消仍在执行的 Handler；Handler 事务应回滚，Worker 会在独立的短 Context 中尝试把任务恢复为 `pending`。仍留在队列中但尚未开始的任务由租约过期恢复。
+在排空期限内完成的任务照常提交。超过期限后，Worker 才会取消仍在执行的 Handler；Handler 事务应回滚，Worker 会在独立的短 Context 中尝试把任务恢复为 `pending`。如果 Handler 在强制停止期限内仍未退出，`Run` 返回 `ErrWorkerShutdownTimeout`，把后续处置交还给服务管理层；`Done()` 仍会等到所有 Worker 真正退出后才关闭。仍留在队列中但尚未开始的任务由租约过期恢复。
 
 所有 Handler 必须使用传入的 Context 执行数据库操作，并且单次处理时间应小于 Scheduler 的 `LeaseDuration`。Go 不能强制终止一个完全忽略 Context 的 goroutine。
 

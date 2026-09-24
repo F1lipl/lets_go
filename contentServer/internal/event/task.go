@@ -11,10 +11,11 @@ import (
 )
 
 var (
-	ErrClaimLost      = errors.New("task claim lost")
-	ErrWorkerStopped  = errors.New("worker is not running")
-	ErrAlreadyRunning = errors.New("worker can only run once")
-	ErrSuperseded     = errors.New("task superseded")
+	ErrClaimLost             = errors.New("task claim lost")
+	ErrWorkerStopped         = errors.New("worker is not running")
+	ErrAlreadyRunning        = errors.New("worker can only run once")
+	ErrWorkerShutdownTimeout = errors.New("worker shutdown timed out")
+	ErrSuperseded            = errors.New("task superseded")
 )
 
 type permanentError struct{ error }

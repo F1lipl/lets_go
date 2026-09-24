@@ -18,6 +18,7 @@ type Worker struct {
 	handler        TaskHandler
 	timeout        time.Duration
 	shutdownGrace  time.Duration
+	forceStopGrace time.Duration
 	cleanupTimeout time.Duration
 	retryDelay     time.Duration
 	mu             sync.Mutex
@@ -27,7 +28,10 @@ type Worker struct {
 	stopped        chan struct{}
 	ready          chan struct{}
 	draining       chan struct{}
-	drainOnce      sync.Once
+	stopSubmitting chan struct{}
+	stopOnce       sync.Once
+	finishOnce     sync.Once
+	submissions    sync.WaitGroup
 	spaceAvailable chan struct{}
 }
 
@@ -43,8 +47,10 @@ func NewWorker(count int, repo TaskRepository, handler TaskHandler) (*Worker, er
 	}
 	return &Worker{count: count, queue: make(chan ClaimedTask, count),
 		repo: repo, handler: handler, timeout: 10 * time.Second,
-		shutdownGrace: 25 * time.Second, cleanupTimeout: 3 * time.Second, retryDelay: time.Second,
+		shutdownGrace: 25 * time.Second, forceStopGrace: 5 * time.Second,
+		cleanupTimeout: 3 * time.Second, retryDelay: time.Second,
 		stopped: make(chan struct{}), ready: make(chan struct{}), draining: make(chan struct{}),
+		stopSubmitting: make(chan struct{}),
 		spaceAvailable: make(chan struct{}, 1)}, nil
 }
 
@@ -61,14 +67,6 @@ func (w *Worker) Run(ctx context.Context) error {
 	w.started, w.running, w.accepting = true, true, true
 	close(w.ready)
 	w.mu.Unlock()
-	defer func() {
-		// Close first so a submitter currently holding mu while waiting on a full
-		// queue can unblock instead of deadlocking shutdown.
-		close(w.stopped)
-		w.mu.Lock()
-		w.running, w.accepting = false, false
-		w.mu.Unlock()
-	}()
 
 	executionCtx, forceStop := context.WithCancel(context.WithoutCancel(ctx))
 	defer forceStop()
@@ -92,16 +90,56 @@ func (w *Worker) Run(ctx context.Context) error {
 	case <-timer.C:
 		logx.WithContext(ctx).Errorf("worker graceful shutdown timed out after %s; canceling active handlers", w.shutdownGrace)
 		forceStop()
-		<-workersDone
+		forceTimer := time.NewTimer(w.forceStopGrace)
+		defer forceTimer.Stop()
+		select {
+		case <-workersDone:
+		case <-forceTimer.C:
+			// Go cannot terminate an uncooperative goroutine. Return control to the
+			// service supervisor, but keep Done truthful by closing it only when the
+			// remaining workers eventually exit.
+			select {
+			case <-workersDone:
+				w.finish()
+				return ctx.Err()
+			default:
+			}
+			err := fmt.Errorf("%w after forced cancellation grace %s", ErrWorkerShutdownTimeout, w.forceStopGrace)
+			logx.WithContext(ctx).Error(err)
+			go func() {
+				<-workersDone
+				w.finish()
+			}()
+			return errors.Join(ctx.Err(), err)
+		}
 	}
+	w.finish()
 	return ctx.Err()
 }
 
 func (w *Worker) stopAcceptingAndDrain() {
-	w.mu.Lock()
-	w.accepting = false
-	w.drainOnce.Do(func() { close(w.draining) })
-	w.mu.Unlock()
+	w.stopOnce.Do(func() {
+		w.mu.Lock()
+		w.accepting = false
+		close(w.stopSubmitting)
+		w.mu.Unlock()
+
+		// Every accepted Submit registered itself while holding mu. Once
+		// accepting is false no new Add can occur, and stopSubmitting releases
+		// callers waiting on a full queue. Drain only after they have all left so
+		// no task can be enqueued behind the draining workers.
+		w.submissions.Wait()
+		close(w.draining)
+	})
+}
+
+func (w *Worker) finish() {
+	w.finishOnce.Do(func() {
+		w.mu.Lock()
+		w.running, w.accepting = false, false
+		w.mu.Unlock()
+		close(w.stopped)
+	})
 }
 
 // Ready is closed once Run has started. Done closes after all workers exit.
@@ -130,14 +168,20 @@ func (w *Worker) Submit(ctx context.Context, task ClaimedTask) error {
 		return errors.New("task key and claim token are required")
 	}
 	w.mu.Lock()
-	defer w.mu.Unlock()
 	if !w.running || !w.accepting {
+		w.mu.Unlock()
 		return ErrWorkerStopped
 	}
+	w.submissions.Add(1)
+	w.mu.Unlock()
+	defer w.submissions.Done()
+
 	task.Context.Payload = append([]byte(nil), task.Context.Payload...)
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
+	case <-w.stopSubmitting:
+		return ErrWorkerStopped
 	case <-w.stopped:
 		return ErrWorkerStopped
 	case w.queue <- task:

@@ -233,3 +233,132 @@ func TestWorkerCancelsActiveHandlerAfterGracePeriod(t *testing.T) {
 		t.Fatalf("worker exit: %v", err)
 	}
 }
+
+func TestWorkerShutdownReleasesSubmitBlockedByFullQueue(t *testing.T) {
+	repo := &testRepo{results: make(chan string, 4)}
+	handlerStarted := make(chan struct{})
+	releaseHandler := make(chan struct{})
+	handler := TaskHandlerFunc(func(ctx context.Context, _ sqlx.Session, task *TaskContext) error {
+		if task.EventId != "active" {
+			return nil
+		}
+		close(handlerStarted)
+		select {
+		case <-releaseHandler:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	})
+	worker, err := NewWorker(1, repo, handler)
+	if err != nil {
+		t.Fatal(err)
+	}
+	worker.shutdownGrace = time.Second
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- worker.Run(ctx) }()
+	<-worker.Ready()
+
+	if err := worker.Submit(ctx, ClaimedTask{Context: TaskContext{EventId: "active", ConsumerName: "test"}, ClaimToken: "active"}); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-handlerStarted:
+	case <-time.After(time.Second):
+		t.Fatal("active handler did not start")
+	}
+	if err := worker.Submit(ctx, ClaimedTask{Context: TaskContext{EventId: "queued", ConsumerName: "test"}, ClaimToken: "queued"}); err != nil {
+		t.Fatal(err)
+	}
+
+	blockedSubmit := make(chan error, 1)
+	go func() {
+		blockedSubmit <- worker.Submit(context.Background(), ClaimedTask{
+			Context:    TaskContext{EventId: "blocked", ConsumerName: "test"},
+			ClaimToken: "blocked",
+		})
+	}()
+	select {
+	case err := <-blockedSubmit:
+		t.Fatalf("submit unexpectedly completed while queue was full: %v", err)
+	case <-time.After(20 * time.Millisecond):
+	}
+
+	cancel()
+	select {
+	case err := <-blockedSubmit:
+		if !errors.Is(err, ErrWorkerStopped) {
+			t.Fatalf("blocked submit returned %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("shutdown did not release blocked submit")
+	}
+	close(releaseHandler)
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("worker exit: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("worker did not finish draining")
+	}
+}
+
+func TestWorkerReturnsWhenHandlerIgnoresForcedCancellation(t *testing.T) {
+	repo := &testRepo{results: make(chan string, 2)}
+	handlerStarted := make(chan struct{})
+	handlerFinished := make(chan struct{})
+	releaseHandler := make(chan struct{})
+	handler := TaskHandlerFunc(func(context.Context, sqlx.Session, *TaskContext) error {
+		close(handlerStarted)
+		<-releaseHandler
+		close(handlerFinished)
+		return nil
+	})
+	worker, err := NewWorker(1, repo, handler)
+	if err != nil {
+		t.Fatal(err)
+	}
+	worker.shutdownGrace = 10 * time.Millisecond
+	worker.forceStopGrace = 10 * time.Millisecond
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- worker.Run(ctx) }()
+	<-worker.Ready()
+	if err := worker.Submit(ctx, ClaimedTask{Context: TaskContext{EventId: "stuck", ConsumerName: "test"}, ClaimToken: "stuck"}); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-handlerStarted:
+	case <-time.After(time.Second):
+		t.Fatal("handler did not start")
+	}
+
+	cancel()
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) || !errors.Is(err, ErrWorkerShutdownTimeout) {
+			t.Fatalf("worker exit = %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("worker Run remained blocked after the forced-stop deadline")
+	}
+	select {
+	case <-worker.Done():
+		t.Fatal("Done closed while the handler was still running")
+	default:
+	}
+
+	close(releaseHandler)
+	select {
+	case <-handlerFinished:
+	case <-time.After(time.Second):
+		t.Fatal("handler did not finish after release")
+	}
+	select {
+	case <-worker.Done():
+	case <-time.After(time.Second):
+		t.Fatal("Done was not closed after the remaining worker exited")
+	}
+}

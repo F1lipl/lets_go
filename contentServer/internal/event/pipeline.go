@@ -18,20 +18,22 @@ type TaskStore interface {
 }
 
 type EventPipelineConfig struct {
-	WorkerCount        int
-	WorkerDrainTimeout time.Duration
-	Scheduler          SchedulerConfig
-	Dispatcher         DispatcherConfig
-	Reclaimer          ReclaimerConfig
+	WorkerCount            int
+	WorkerDrainTimeout     time.Duration
+	WorkerForceStopTimeout time.Duration
+	Scheduler              SchedulerConfig
+	Dispatcher             DispatcherConfig
+	Reclaimer              ReclaimerConfig
 }
 
 func DefaultEventPipelineConfig() EventPipelineConfig {
 	return EventPipelineConfig{
-		WorkerCount:        4,
-		WorkerDrainTimeout: 25 * time.Second,
-		Scheduler:          DefaultSchedulerConfig(),
-		Dispatcher:         DefaultDispatcherConfig(),
-		Reclaimer:          DefaultReclaimerConfig(),
+		WorkerCount:            4,
+		WorkerDrainTimeout:     25 * time.Second,
+		WorkerForceStopTimeout: 5 * time.Second,
+		Scheduler:              DefaultSchedulerConfig(),
+		Dispatcher:             DefaultDispatcherConfig(),
+		Reclaimer:              DefaultReclaimerConfig(),
 	}
 }
 
@@ -60,7 +62,7 @@ func NewEventPipeline(
 	if dispatchRepo == nil || taskStore == nil || registry == nil || handler == nil {
 		return nil, errors.New("dispatch repository, task store, consumer registry and task handler are required")
 	}
-	if config.WorkerCount < 0 || config.WorkerDrainTimeout < 0 {
+	if config.WorkerCount < 0 || config.WorkerDrainTimeout < 0 || config.WorkerForceStopTimeout < 0 {
 		return nil, errors.New("worker configuration cannot be negative")
 	}
 	defaults := DefaultEventPipelineConfig()
@@ -70,12 +72,16 @@ func NewEventPipeline(
 	if config.WorkerDrainTimeout == 0 {
 		config.WorkerDrainTimeout = defaults.WorkerDrainTimeout
 	}
+	if config.WorkerForceStopTimeout == 0 {
+		config.WorkerForceStopTimeout = defaults.WorkerForceStopTimeout
+	}
 
 	worker, err := NewWorker(config.WorkerCount, taskStore, handler)
 	if err != nil {
 		return nil, err
 	}
 	worker.shutdownGrace = config.WorkerDrainTimeout
+	worker.forceStopGrace = config.WorkerForceStopTimeout
 	scheduler, err := NewScheduler(taskStore, worker, config.Scheduler)
 	if err != nil {
 		return nil, err
