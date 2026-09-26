@@ -27,7 +27,6 @@ type Worker struct {
 	accepting      bool
 	stopped        chan struct{}
 	ready          chan struct{}
-	draining       chan struct{}
 	stopSubmitting chan struct{}
 	stopOnce       sync.Once
 	finishOnce     sync.Once
@@ -49,7 +48,7 @@ func NewWorker(count int, repo TaskRepository, handler TaskHandler) (*Worker, er
 		repo: repo, handler: handler, timeout: 10 * time.Second,
 		shutdownGrace: 25 * time.Second, forceStopGrace: 5 * time.Second,
 		cleanupTimeout: 3 * time.Second, retryDelay: time.Second,
-		stopped: make(chan struct{}), ready: make(chan struct{}), draining: make(chan struct{}),
+		stopped: make(chan struct{}), ready: make(chan struct{}),
 		stopSubmitting: make(chan struct{}),
 		spaceAvailable: make(chan struct{}, 1)}, nil
 }
@@ -126,10 +125,11 @@ func (w *Worker) stopAcceptingAndDrain() {
 
 		// Every accepted Submit registered itself while holding mu. Once
 		// accepting is false no new Add can occur, and stopSubmitting releases
-		// callers waiting on a full queue. Drain only after they have all left so
-		// no task can be enqueued behind the draining workers.
+		// callers waiting on a full queue. Close queue only after every submitter
+		// has left, so no sender can race with the close. Buffered tasks remain
+		// available to workers after the close.
 		w.submissions.Wait()
-		close(w.draining)
+		close(w.queue)
 	})
 }
 
@@ -191,38 +191,18 @@ func (w *Worker) Submit(ctx context.Context, task ClaimedTask) error {
 
 func (w *Worker) work(ctx context.Context) {
 	for {
-		if ctx.Err() != nil {
-			return
-		}
 		select {
 		case <-ctx.Done():
 			return
-		case <-w.draining:
-			w.drain(ctx)
-			return
-		case task := <-w.queue:
+		case task, ok := <-w.queue:
+			if !ok {
+				return
+			}
 			w.notifySpaceAvailable()
 			if ctx.Err() != nil {
 				return
 			} // queued claims are recovered by lease expiry
 			w.execute(ctx, task)
-		}
-	}
-}
-
-func (w *Worker) drain(ctx context.Context) {
-	for {
-		if ctx.Err() != nil {
-			return
-		}
-		select {
-		case <-ctx.Done():
-			return
-		case task := <-w.queue:
-			w.notifySpaceAvailable()
-			w.execute(ctx, task)
-		default:
-			return
 		}
 	}
 }

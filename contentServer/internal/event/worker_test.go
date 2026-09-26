@@ -104,6 +104,36 @@ func TestWorkerContinuesAfterErrorsAndPanic(t *testing.T) {
 	}
 }
 
+func TestWorkerClosedQueueReleasesAllIdleWorkers(t *testing.T) {
+	repo := &testRepo{results: make(chan string, 1)}
+	handler := TaskHandlerFunc(func(context.Context, sqlx.Session, *TaskContext) error {
+		return nil
+	})
+	worker, err := NewWorker(4, repo, handler)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- worker.Run(ctx) }()
+	<-worker.Ready()
+
+	cancel()
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("worker exit: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("closing an empty queue did not release all idle workers")
+	}
+	select {
+	case <-worker.Done():
+	default:
+		t.Fatal("Done was not closed after all idle workers exited")
+	}
+}
+
 func TestControllerRegistration(t *testing.T) {
 	c := NewTaskController()
 	if err := c.Handle(context.Background(), nil, &TaskContext{ConsumerName: "missing"}); err == nil {
@@ -158,15 +188,15 @@ func TestWorkerDrainsClaimedTasksBeforeExit(t *testing.T) {
 
 	cancel()
 	select {
-	case <-worker.draining:
+	case <-worker.stopSubmitting:
 	case <-time.After(time.Second):
-		t.Fatal("worker did not enter draining state")
+		t.Fatal("worker did not stop accepting submissions")
 	}
 	if err := worker.Submit(context.Background(), ClaimedTask{Context: TaskContext{EventId: "late", ConsumerName: "test"}, ClaimToken: "late"}); !errors.Is(err, ErrWorkerStopped) {
 		t.Fatalf("submit during drain: %v", err)
 	}
-	// Cancellation starts draining but must not cancel the active handler while
-	// the grace period is still available.
+	// Cancellation closes the queue after in-flight submitters leave, but must
+	// not cancel the active handler while the grace period is still available.
 	select {
 	case result := <-repo.results:
 		t.Fatalf("active task finished before release: %s", result)
