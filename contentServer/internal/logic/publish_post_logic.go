@@ -71,6 +71,9 @@ func (l *PublishPostLogic) PublishPost(req *types.PublishPostRequest) (*types.Pu
 	if err != nil {
 		return nil, err
 	}
+	if l.svcCtx.OutboxNotifier != nil {
+		l.svcCtx.OutboxNotifier.NotifyOutboxCommitted()
+	}
 	return &types.PublishPostData{
 		PostId: result.PostID.String(), RevisionId: result.RevisionID.String(),
 		RevisionNumber: result.RevisionNumber, PostVersion: result.PostVersion,

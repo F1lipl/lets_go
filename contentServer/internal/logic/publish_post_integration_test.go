@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -30,6 +31,10 @@ func (s failOutboxSession) ExecCtx(ctx context.Context, query string, args ...an
 }
 
 type failOutboxConn struct{ sqlx.SqlConn }
+
+type countingOutboxNotifier struct{ count atomic.Int64 }
+
+func (n *countingOutboxNotifier) NotifyOutboxCommitted() { n.count.Add(1) }
 
 func (c failOutboxConn) TransactCtx(ctx context.Context, fn func(context.Context, sqlx.Session) error) error {
 	return c.SqlConn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
@@ -90,9 +95,10 @@ func TestPublishPostMySQL(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	notifier := &countingOutboxNotifier{}
 	call := func(c sqlx.SqlConn, actor string, version, draftVersion uint64) (*types.PublishPostData, error) {
 		requestCtx := context.WithValue(context.WithValue(ctx, "userId", actor), "sessionId", "test")
-		logic := NewPublishPostLogic(requestCtx, &svc.ServiceContext{DB: c})
+		logic := NewPublishPostLogic(requestCtx, &svc.ServiceContext{DB: c, OutboxNotifier: notifier})
 		return logic.PublishPost(&types.PublishPostRequest{PostId: postID, ExpectedPostVersion: version, ExpectedDraftVersion: draftVersion})
 	}
 	if _, err := call(conn, uuid.NewString(), 1, 1); !errors.Is(err, domain.ErrPostOperationNotAllowed) {
@@ -122,6 +128,9 @@ func TestPublishPostMySQL(t *testing.T) {
 	if result, err := call(failOutboxConn{conn}, authorID, 1, 1); err == nil || result != nil {
 		t.Fatal("failed outbox returned success")
 	}
+	if got := notifier.count.Load(); got != 0 {
+		t.Fatalf("outbox notified before a successful commit: %d", got)
+	}
 	var count int
 	if err := conn.QueryRowCtx(ctx, &count, "SELECT COUNT(*) FROM post_revision WHERE post_id=?", postID); err != nil || count != 0 {
 		t.Fatalf("rollback revision count=%d err=%v", count, err)
@@ -136,6 +145,9 @@ func TestPublishPostMySQL(t *testing.T) {
 	}
 	if first.RevisionNumber != 1 || first.PostVersion != 2 {
 		t.Fatalf("first publication: %+v", first)
+	}
+	if got := notifier.count.Load(); got != 1 {
+		t.Fatalf("first committed publication notifications: %d", got)
 	}
 	if _, err := call(conn, authorID, 1, 1); !errors.Is(err, domain.ErrPostVersionConflict) {
 		t.Fatalf("stale publish: %v", err)
@@ -165,6 +177,9 @@ func TestPublishPostMySQL(t *testing.T) {
 	if success != 1 || conflicts != 1 {
 		t.Fatalf("concurrent results: %d successes, %d conflicts", success, conflicts)
 	}
+	if got := notifier.count.Load(); got != 2 {
+		t.Fatalf("committed publication notifications: %d", got)
+	}
 	row, err = model.NewPostModel(conn).FindOne(ctx, postID)
 	if err != nil || row.RevisionSequence != 2 || row.PostVersion != 3 || row.LifecycleStatus != 3 || !row.FirstPublishedAt.Time.Equal(firstRow.FirstPublishedAt.Time) {
 		t.Fatalf("republish post: %+v %v", row, err)
@@ -185,5 +200,8 @@ func TestPublishPostMySQL(t *testing.T) {
 	}
 	if _, err := call(conn, authorID, 4, 2); !errors.Is(err, domain.ErrPostAlreadyDeleted) {
 		t.Fatalf("deleted post: %v", err)
+	}
+	if got := notifier.count.Load(); got != 2 {
+		t.Fatalf("failed publications triggered notifications: %d", got)
 	}
 }

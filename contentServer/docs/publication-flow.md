@@ -20,12 +20,14 @@
 
 ## 事件边界
 
-本次只实现持久化待投递事件，没有实现 outbox 投递器或卡片、话题检索、搜索、推荐、通知消费者。
+发布事务写入 outbox 后，Logic 在提交成功时唤醒 EventPipeline 的 Dispatcher；Dispatcher 将 PostPublished 拆分为 post_card delivery，Scheduler 领取任务，Worker 在一个事务里执行 PostCardHandler 并将 delivery 标记完成。进程重启或通知丢失时，定时扫描继续处理数据库中未完成的事件与任务。
 
 PostPublished 的 payload 包含 schemaVersion、postId、authorId、revisionId、revisionNumber、sourceDraftVersion、postVersion、tagNames；发生时间在 occurred_at。
 tagNames 是发布时复制的值。消费者必须读取指定 Revision，不得读取后续变化的 Draft。
 
-后续消费者按事件 ID 去重，按 postVersion 避免旧事件覆盖新结果。卡片等展示数据尚不会因本次发布自动生成。
+PostCardHandler 只读取当前 Post 和指定 Revision 的卡片字段，不加载正文。它锁定 Post 行、校验当前发布版本，按 postVersion 避免旧事件覆盖新结果，并在与 delivery 完成标记相同的事务里更新 post_card_projection。过期版本任务标记为 superseded。删除 Post 时，同一事务删除卡片；尚未处理的旧发布事件不能将其重新创建。
+
+当前还没有实现话题检索、搜索、推荐、通知消费者，也没有实现卡片列表及批量读取 API。资源 URL、互动计数、作者资料等需要在读取链路中另行组合；投影只保存内容服务拥有的卡片字段。
 删除 outbox 历史前，应确保话题快照等下游数据已经可靠保存。
 
 ## 验证
@@ -34,6 +36,6 @@ go test ./...
 
 设置 CONTENT_MODEL_TEST_DSN 为独立测试数据库连接后运行：
 
-go test ./internal/logic ./internal/model -count=1
+go test ./internal/logic ./internal/model ./internal/taskhandler -count=1
 
-集成测试覆盖首次发布、再次发布、旧快照保留、版本冲突、作者不符、删除状态、资源未就绪、资源关系缺失、并发发布和 outbox 写入失败的整笔回滚。测试仅清理自己生成的 ID 对应数据。
+集成测试覆盖首次发布、再次发布、旧快照保留、版本冲突、作者不符、删除状态、资源未就绪、资源关系缺失、并发发布和 outbox 写入失败的整笔回滚；卡片测试覆盖首次投影、重复投递、旧版本事件和删除后不重建。测试仅清理自己生成的 ID 对应数据。

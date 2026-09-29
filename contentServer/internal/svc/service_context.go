@@ -14,6 +14,9 @@ type ServiceContext struct {
 	Config config.Config
 	DB     sqlx.SqlConn
 	Redis  *redis.Redis
+	// OutboxNotifier is called only after a transaction writing an outbox
+	// event commits. The periodic dispatcher scan remains the recovery path.
+	OutboxNotifier interface{ NotifyOutboxCommitted() }
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {

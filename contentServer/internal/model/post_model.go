@@ -76,7 +76,7 @@ func (m *customPostModel) UpdateForDelete(
 	return m.conn.ExecCtx(
 		ctx,
 		query,
-		uint64(1),
+		uint64(4),
 		deletedAt,
 		postID,
 		authorID,
