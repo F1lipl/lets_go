@@ -25,7 +25,7 @@
 PostPublished 的 payload 包含 schemaVersion、postId、authorId、revisionId、revisionNumber、sourceDraftVersion、postVersion、tagNames；发生时间在 occurred_at。
 tagNames 是发布时复制的值。消费者必须读取指定 Revision，不得读取后续变化的 Draft。
 
-PostCardHandler 只读取当前 Post 和指定 Revision 的卡片字段，不加载正文。它锁定 Post 行、校验当前发布版本，按 postVersion 避免旧事件覆盖新结果，并在与 delivery 完成标记相同的事务里更新 post_card_projection。过期版本任务标记为 superseded。删除 Post 时，同一事务删除卡片；尚未处理的旧发布事件不能将其重新创建。
+PostCardHandler 只解析、校验事件并调用 PostCardRepository。Repository 只读取当前 Post 和指定 Revision 的卡片字段，不加载正文；它锁定 Post 行、校验当前发布版本，按 postVersion 避免旧事件覆盖新结果，并在与 delivery 完成标记相同的事务里更新 post_card_projection。过期版本任务标记为 superseded。删除 Post 时，同一事务删除卡片；尚未处理的旧发布事件不能将其重新创建。
 
 当前还没有实现话题检索、搜索、推荐、通知消费者，也没有实现卡片列表及批量读取 API。资源 URL、互动计数、作者资料等需要在读取链路中另行组合；投影只保存内容服务拥有的卡片字段。
 删除 outbox 历史前，应确保话题快照等下游数据已经可靠保存。

@@ -14,7 +14,7 @@ if err != nil {
 }
 
 controller := event.NewTaskController()
-if err := controller.Register("post_card", taskhandler.PostCardHandler{}); err != nil {
+if err := controller.Register("post_card", taskhandler.NewPostCardHandler(respository.NewPostCardRepository())); err != nil {
     return err
 }
 

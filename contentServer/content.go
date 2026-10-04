@@ -49,7 +49,7 @@ func main() {
 		log.Fatal(err)
 	}
 	controller := event.NewTaskController()
-	if err := controller.Register("post_card", taskhandler.PostCardHandler{}); err != nil {
+	if err := controller.Register("post_card", taskhandler.NewPostCardHandler(respository.NewPostCardRepository())); err != nil {
 		log.Fatal(err)
 	}
 	pipeline, err := event.NewEventPipeline(

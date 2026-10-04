@@ -11,6 +11,7 @@ import (
 
 	"contentserver/internal/event"
 	"contentserver/internal/model"
+	"contentserver/internal/respository"
 
 	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
@@ -59,7 +60,7 @@ func TestPostCardHandlerMySQL(t *testing.T) {
 			return err
 		}
 		cards := model.NewPostCardProjectionModel(tx)
-		handler := PostCardHandler{}
+		handler := NewPostCardHandler(respository.NewPostCardRepository())
 		input := func(revisionID string, version uint64) *event.TaskContext {
 			payload, err := json.Marshal(postPublishedPayload{
 				SchemaVersion: 1, PostID: postID, AuthorID: authorID,
