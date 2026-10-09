@@ -89,6 +89,8 @@ func codeFromError(err error) ecode.Code {
 	switch {
 	case errors.Is(err, domain.ErrMediaAssetNotReady):
 		return ecode.MediaAssetNotReady
+	case errors.Is(err, domain.ErrMediaAssetNotFound):
+		return ecode.MediaAssetNotFound
 	case errors.Is(err, domain.ErrDraftNotFound):
 		return ecode.DraftNotFound
 	case errors.Is(err, domain.ErrDraftContentInvalid):
@@ -104,6 +106,8 @@ func codeFromError(err error) ecode.Code {
 		return ecode.InvalidUserID
 	case errors.Is(err, domain.ErrInvalidRevisionID):
 		return ecode.InvalidRevisionID
+	case errors.Is(err, domain.ErrInvalidAssetID):
+		return ecode.InvalidMediaAssetID
 	case errors.Is(err, domain.ErrInvalidLifecycleStatus):
 		return ecode.InvalidLifecycleStatus
 	case errors.Is(err, domain.ErrInvalidVisibility):
@@ -126,6 +130,12 @@ func codeFromError(err error) ecode.Code {
 		return ecode.PostOperationNotAllowed
 	case errors.Is(err, domain.ErrPostVersionConflict):
 		return ecode.PostVersionConflict
+	case errors.Is(err, domain.ErrTagNameInvalid):
+		return ecode.TagNameInvalid
+	case errors.Is(err, domain.ErrTooManyTags):
+		return ecode.TooManyTags
+	case errors.Is(err, domain.ErrTagUnavailable):
+		return ecode.TagUnavailable
 	default:
 		return ecode.FromError(err)
 	}

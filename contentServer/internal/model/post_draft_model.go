@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
@@ -19,6 +20,8 @@ type (
 		UpdateWithVersion(ctx context.Context, post *PostDraft, version uint64) error
 		SelectForUpdate(ctx context.Context, id string, version uint64) (*PostDraft, error)
 		FindOneForUpdate(ctx context.Context, id string) (*PostDraft, error)
+		FindVersionForUpdate(ctx context.Context, id string) (uint64, error)
+		FindUpdatedAt(ctx context.Context, id string) (time.Time, error)
 	}
 
 	customPostDraftModel struct {
@@ -31,6 +34,25 @@ func NewPostDraftModel(conn sqlx.SqlConn) PostDraftModel {
 	return &customPostDraftModel{
 		defaultPostDraftModel: newPostDraftModel(conn),
 	}
+}
+
+func (m *customPostDraftModel) FindVersionForUpdate(ctx context.Context, id string) (uint64, error) {
+	var row struct {
+		Version uint64 `db:"draft_version"`
+	}
+	err := m.conn.QueryRowCtx(ctx, &row, fmt.Sprintf("select draft_version from %s where post_id=? for update", m.table), id)
+	if errors.Is(err, sqlx.ErrNotFound) {
+		return 0, ErrNotFound
+	}
+	return row.Version, err
+}
+
+func (m *customPostDraftModel) FindUpdatedAt(ctx context.Context, id string) (time.Time, error) {
+	var row struct {
+		UpdatedAt time.Time `db:"updated_at"`
+	}
+	err := m.conn.QueryRowCtx(ctx, &row, fmt.Sprintf("select updated_at from %s where post_id=?", m.table), id)
+	return row.UpdatedAt, err
 }
 
 func (m *customPostDraftModel) withSession(session sqlx.Session) PostDraftModel {

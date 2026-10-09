@@ -17,6 +17,7 @@ type (
 		mediaAssetModel
 		withSession(session sqlx.Session) MediaAssetModel
 		FindReadyByIDs(ctx context.Context, ids []string) ([]MediaAsset, error)
+		FindByIDsForShare(ctx context.Context, ids []string) ([]MediaAsset, error)
 	}
 
 	customMediaAssetModel struct {
@@ -29,6 +30,23 @@ func NewMediaAssetModel(conn sqlx.SqlConn) MediaAssetModel {
 	return &customMediaAssetModel{
 		defaultMediaAssetModel: newMediaAssetModel(conn),
 	}
+}
+
+func (m *customMediaAssetModel) FindByIDsForShare(ctx context.Context, ids []string) ([]MediaAsset, error) {
+	if len(ids) == 0 {
+		return []MediaAsset{}, nil
+	}
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+	query := fmt.Sprintf("select %s from %s where asset_id in (%s) order by asset_id for share",
+		mediaAssetRows, m.table, strings.TrimSuffix(strings.Repeat("?,", len(ids)), ","))
+	var rows []MediaAsset
+	if err := m.conn.QueryRowsCtx(ctx, &rows, query, args...); err != nil {
+		return nil, err
+	}
+	return rows, nil
 }
 
 func (m *customMediaAssetModel) withSession(session sqlx.Session) MediaAssetModel {

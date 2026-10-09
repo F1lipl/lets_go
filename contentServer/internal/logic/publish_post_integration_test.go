@@ -48,14 +48,14 @@ func TestPublishPostMySQL(t *testing.T) {
 		t.Skip("set CONTENT_MODEL_TEST_DSN for MySQL integration")
 	}
 	conn := sqlx.NewMysql(dsn)
-	db, err := conn.RawDB()
-	if err != nil {
+	// sqlx caches MySQL connections for this DSN across integration cases.
+	if _, err := conn.RawDB(); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = db.Close() })
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	postID, authorID, assetID := uuid.NewString(), uuid.NewString(), uuid.NewString()
+	tagName := "travel-" + postID[:8]
 	// Only remove rows belonging to this test's generated IDs.
 	t.Cleanup(func() {
 		cleanupCtx, done := context.WithTimeout(context.Background(), 10*time.Second)
@@ -66,7 +66,9 @@ func TestPublishPostMySQL(t *testing.T) {
 		}{
 			{"DELETE FROM outbox_event WHERE aggregate_id=?", []any{postID}},
 			{"DELETE FROM content_asset_ref WHERE asset_id=?", []any{assetID}},
+			{"DELETE FROM post_revision_tag WHERE revision_id IN (SELECT revision_id FROM post_revision WHERE post_id=?)", []any{postID}},
 			{"DELETE FROM post_revision WHERE post_id=?", []any{postID}},
+			{"DELETE FROM tag WHERE normalized_name=? AND created_by=?", []any{tagName, authorID}},
 			{"DELETE FROM post_draft WHERE post_id=?", []any{postID}},
 			{"DELETE FROM post WHERE post_id=?", []any{postID}},
 			{"DELETE FROM media_asset WHERE asset_id=?", []any{assetID}},
@@ -91,7 +93,7 @@ func TestPublishPostMySQL(t *testing.T) {
 	document := `{"schemaVersion":1,"blocks":[{"BlockID":"b1","BlockType":"paragraph","Text":"hello"}]}`
 	if _, err := model.NewPostDraftModel(conn).Insert(ctx, &model.PostDraft{
 		PostId: postID, DraftVersion: 1, Title: "first", CoverAssetId: sql.NullString{String: assetID, Valid: true},
-		DocumentSchemaVersion: 1, DocumentJson: document, TagNamesJson: `["travel"]`, PlainText: "hello", BlockCount: 1,
+		DocumentSchemaVersion: 1, DocumentJson: document, TagNamesJson: `["` + tagName + `"]`, PlainText: "hello", BlockCount: 1,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -145,6 +147,11 @@ func TestPublishPostMySQL(t *testing.T) {
 	}
 	if first.RevisionNumber != 1 || first.PostVersion != 2 {
 		t.Fatalf("first publication: %+v", first)
+	}
+	var firstTagCount int
+	if err := conn.QueryRowCtx(ctx, &firstTagCount,
+		"SELECT COUNT(*) FROM post_revision_tag WHERE revision_id=? AND tag_name_snapshot=?", first.RevisionId, tagName); err != nil || firstTagCount != 1 {
+		t.Fatalf("first revision tags: count=%d err=%v", firstTagCount, err)
 	}
 	if got := notifier.count.Load(); got != 1 {
 		t.Fatalf("first committed publication notifications: %d", got)

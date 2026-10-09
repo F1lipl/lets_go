@@ -179,24 +179,25 @@ type DeletePostResponse struct {
 }
 
 type GetPostData struct {
-	PostId         string           `json:"postId"`
-	AuthorId       string           `json:"authorId"`
-	Status         string           `json:"status"`
-	Visibility     string           `json:"visibility"`
-	RevisionId     string           `json:"revisionId"`
-	RevisionNumber uint64           `json:"revisionNumber"`
-	Title          string           `json:"title"`
-	Summary        string           `json:"summary"`
-	HasCover       bool             `json:"hasCover"`
-	Cover          CoverView        `json:"cover"`
-	Document       PostDocument     `json:"document"`
-	MediaAssets    []MediaAssetView `json:"mediaAssets"`
-	Tags           []PostTag        `json:"tags"`
-	LikeCount      uint64           `json:"likeCount"`
-	FavoriteCount  uint64           `json:"favoriteCount"`
-	CommentCount   uint64           `json:"commentCount"`
-	PostVersion    uint64           `json:"postVersion"`
-	PublishedAt    string           `json:"publishedAt"`
+	PostId         string      `json:"postId"`
+	AuthorId       string      `json:"authorId"`
+	Status         string      `json:"status"`
+	Visibility     string      `json:"visibility"`
+	RevisionId     string      `json:"revisionId"`
+	RevisionNumber uint64      `json:"revisionNumber"`
+	Title          string      `json:"title"`
+	Summary        string      `json:"summary"`
+	HasCover       bool        `json:"hasCover"`
+	Cover          CoverView   `json:"cover"`
+	Document       interface{} `json:"document"`
+	Tags           []PostTag   `json:"tags"`
+	TagsStatus     string      `json:"tagsStatus"`
+	LikeCount      uint64      `json:"likeCount"`
+	FavoriteCount  uint64      `json:"favoriteCount"`
+	CommentCount   uint64      `json:"commentCount"`
+	StatsStatus    string      `json:"statsStatus"`
+	PostVersion    uint64      `json:"postVersion"`
+	PublishedAt    string      `json:"publishedAt"`
 }
 
 type GetPostDraftData struct {

@@ -7,6 +7,7 @@ import "errors"
 // values.
 var (
 	ErrMediaAssetNotReady      = errors.New("media asset is not ready")
+	ErrMediaAssetNotFound      = errors.New("media asset not found")
 	ErrDraftNotFound           = errors.New("draft not found")
 	ErrDraftContentInvalid     = errors.New("draft content invalid")
 	ErrPublishNotAllowed       = errors.New("publish not allowed")
@@ -27,4 +28,7 @@ var (
 	ErrPostAlreadyDeleted      = errors.New("post already deleted")
 	ErrPostOperationNotAllowed = errors.New("post operation not allowed")
 	ErrPostVersionConflict     = errors.New("post version conflict")
+	ErrTagNameInvalid          = errors.New("tag name invalid")
+	ErrTooManyTags             = errors.New("too many tags")
+	ErrTagUnavailable          = errors.New("tag unavailable")
 )

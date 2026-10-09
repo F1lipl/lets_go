@@ -15,7 +15,6 @@ import (
 type PostReadQueries interface {
 	FindPost(context.Context, sqlx.SqlConn, domain.PostID) (*domain.Post, error)
 	FindRevision(context.Context, sqlx.SqlConn, domain.RevisionID) (*domain.PostRevision, error)
-	FindReadyAssets(context.Context, sqlx.SqlConn, []domain.AssetID) ([]domain.PublishedAsset, error)
 	FindTags(context.Context, sqlx.SqlConn, domain.RevisionID) ([]domain.PublishedTag, error)
 	FindCounts(context.Context, sqlx.SqlConn, domain.PostID) (*domain.PostCounts, error)
 }
@@ -70,6 +69,22 @@ func restoreRevision(row *model.PostRevision) (*domain.PostRevision, error) {
 		}
 	}
 	return revision, nil
+}
+
+func (r *PostRepository) FindAssetRefs(ctx context.Context, conn sqlx.SqlConn, revisionID domain.RevisionID) ([]domain.AssetID, error) {
+	rows, err := model.NewContentAssetRefModel(conn).FindByOwner(ctx, 2, revisionID.String())
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]domain.AssetID, 0, len(rows))
+	for _, row := range rows {
+		id, err := domain.ParseAssetID(row.AssetId)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
 }
 
 func (r *PostRepository) FindReadyAssets(ctx context.Context, conn sqlx.SqlConn, ids []domain.AssetID) ([]domain.PublishedAsset, error) {

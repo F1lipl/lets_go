@@ -40,6 +40,7 @@ func (visibility Visibility) Valid() bool {
 
 type PostRepositoryInterface interface {
 	CreatePost(ctx context.Context, conn sqlx.SqlConn, post *Post, postDraft *PostDraft) error
+	SavePostDraft(ctx context.Context, conn sqlx.SqlConn, postID PostID, apply func(*Post, uint64) (*PostDraft, error)) (*PostDraft, error)
 	DeletePost(ctx context.Context, conn sqlx.SqlConn, postID PostID, authorID UserID, expectedVersion uint64) error
 	PublishPost(ctx context.Context, conn sqlx.SqlConn, postID PostID, apply func(*Post, *PostDraft) (*PostRevision, error)) (*PublicationResult, error)
 }
@@ -91,6 +92,48 @@ func NewPost(authorID UserID, visibility Visibility) (*Post, error) {
 		UpdatedAt:           now,
 		DeletedAt:           nil,
 	}, nil
+}
+
+func ParseVisibility(value string) (Visibility, error) {
+	switch value {
+	case "public":
+		return VisibilityPublic, nil
+	case "followers":
+		return VisibilityFollowers, nil
+	case "private":
+		return VisibilityPrivate, nil
+	default:
+		return 0, ErrInvalidVisibility
+	}
+}
+
+// ReplaceDraft checks post ownership and lifecycle against the row loaded by
+// the repository. Draft content was validated before the transaction began.
+func (post *Post) ReplaceDraft(actorID UserID, currentVersion, expectedVersion uint64, content *DraftContent, now time.Time) (*PostDraft, error) {
+	if actorID.IsZero() {
+		return nil, ErrInvalidUserID
+	}
+	if post.AuthorID != actorID {
+		return nil, ErrPostOperationNotAllowed
+	}
+	if post.LifecycleStatus == LifecycleDeleted || post.DeletedAt != nil {
+		return nil, ErrPostAlreadyDeleted
+	}
+	if post.LifecycleStatus != LifecycleDraft && post.LifecycleStatus != LifecyclePublished {
+		return nil, ErrPostOperationNotAllowed
+	}
+	if expectedVersion == 0 || currentVersion == ^uint64(0) {
+		return nil, ErrInvalidVersion
+	}
+	if currentVersion != expectedVersion {
+		return nil, ErrDraftVersionConflict
+	}
+	draft, err := CreateNewPostDraft(post.PostID, content, now)
+	if err != nil {
+		return nil, err
+	}
+	draft.Version = currentVersion + 1
+	return draft, nil
 }
 
 // Publish evaluates domain rules on request-local state, without database access.

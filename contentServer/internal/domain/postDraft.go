@@ -35,14 +35,20 @@ func (t BlockType) Valid() bool {
 }
 
 type ContentBlock struct {
-	BlockID       string    `json:"BlockID"`
-	ParentBlockID string    `json:"ParentBlockID,omitempty"`
-	BlockType     BlockType `json:"BlockType"`
-	SortOrder     int64     `json:"SortOrder"`
+	BlockID       string    `json:"blockId"`
+	ParentBlockID string    `json:"parentBlockId,omitempty"`
+	BlockType     BlockType `json:"blockType"`
+	SortOrder     int64     `json:"sortOrder"`
 
-	Title    string    `json:"Title,omitempty"`
-	Text     string    `json:"Text,omitempty"`
-	AssetIDs []AssetID `json:"AssetIDs,omitempty"`
+	Title    string    `json:"title,omitempty"`
+	Text     string    `json:"text,omitempty"`
+	AssetIDs []AssetID `json:"assetIds,omitempty"`
+}
+
+type DraftAssetRef struct {
+	BlockID   string
+	AssetID   AssetID
+	SortOrder uint64
 }
 
 type PostDraft struct {
@@ -58,6 +64,7 @@ type PostDraft struct {
 	BlockCount            uint64
 	ImageCount            uint64
 	TagNames              []string
+	AssetRefs             []DraftAssetRef // Transient index entries, derived when accepting new content.
 
 	Version uint64
 
@@ -65,21 +72,28 @@ type PostDraft struct {
 	UpdatedAt time.Time
 }
 
-func CreateNewPostDraft(id PostID, title string, summary string, cover *Cover, document string, tagName []string) (*PostDraft, error) {
+func CreateNewPostDraft(id PostID, content *DraftContent, now time.Time) (*PostDraft, error) {
 	if id.IsZero() {
 		return nil, ErrInvalidPostID
 	}
-	now := time.Now()
+	if content == nil {
+		return nil, ErrDraftContentInvalid
+	}
 	return &PostDraft{
-		PostID:    id,
-		Title:     title,
-		Summary:   summary,
-		Cover:     cover,
-		Document:  document,
-		TagNames:  tagName,
-		Version:   1,
-		CreatedAt: now,
-		UpdatedAt: now,
+		PostID:                id,
+		Title:                 content.Title,
+		Summary:               content.Summary,
+		Cover:                 cloneCover(content.Cover),
+		Document:              content.Document,
+		DocumentSchemaVersion: content.DocumentSchemaVersion,
+		PlainText:             content.PlainText,
+		BlockCount:            content.BlockCount,
+		ImageCount:            content.ImageCount,
+		TagNames:              append(make([]string, 0, len(content.TagNames)), content.TagNames...),
+		AssetRefs:             append([]DraftAssetRef(nil), content.AssetRefs...),
+		Version:               1,
+		CreatedAt:             now,
+		UpdatedAt:             now,
 	}, nil
 }
 

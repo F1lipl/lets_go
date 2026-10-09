@@ -83,6 +83,9 @@ func (r *PostRepository) PublishPost(
 		if _, err := model.NewPostRevisionModel(txConn).Insert(ctx, revisionRow(revision)); err != nil {
 			return err
 		}
+		if err := publishRevisionTags(ctx, txConn, revision, row.AuthorId); err != nil {
+			return err
+		}
 		row.PublishedRevisionId = sql.NullString{String: revision.RevisionId.String(), Valid: true}
 		row.RevisionSequence = post.RevisionSequence
 		row.PostVersion = post.Version
@@ -132,6 +135,44 @@ func (r *PostRepository) PublishPost(
 		return nil, err
 	}
 	return result, nil
+}
+
+func publishRevisionTags(ctx context.Context, conn sqlx.SqlConn, revision *domain.PostRevision, authorID string) error {
+	names, err := domain.PrepareTagNames(revision.TagNames)
+	if err != nil {
+		return err
+	}
+	// Resolve names in a deterministic order, reducing opposing lock order when
+	// concurrent posts use overlapping topics in different display orders.
+	ordered := append([]domain.TagName(nil), names...)
+	sort.Slice(ordered, func(i, j int) bool { return ordered[i].Normalized < ordered[j].Normalized })
+	resolved := make(map[string]*model.Tag, len(names))
+	tags := model.NewTagModel(conn)
+	for _, name := range ordered {
+		id, err := uuid.NewV7()
+		if err != nil {
+			return err
+		}
+		row, err := tags.FindOrCreate(ctx, id.String(), name.Normalized, name.Display, authorID)
+		if err != nil {
+			return err
+		}
+		if row.Status != 1 {
+			return domain.ErrTagUnavailable
+		}
+		resolved[name.Normalized] = row
+	}
+	refs := model.NewPostRevisionTagModel(conn)
+	for i, name := range names {
+		row := resolved[name.Normalized]
+		if _, err := refs.Insert(ctx, &model.PostRevisionTag{
+			RevisionId: revision.RevisionId.String(), TagId: row.TagId,
+			TagNameSnapshot: row.DisplayName, SortOrder: uint64(i),
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Draft resource references must be maintained in the same transaction as its version.

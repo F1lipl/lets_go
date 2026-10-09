@@ -14,6 +14,7 @@ import (
 
 func SavePostDraftHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxDraftWriteRequestBytes)
 		var req types.SavePostDraftRequest
 		if err := httpx.Parse(r, &req); err != nil {
 			writeInvalidRequest(r.Context(), w, err)
