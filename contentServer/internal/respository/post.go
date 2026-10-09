@@ -13,7 +13,7 @@ import (
 type PostRepository struct {
 }
 
-func NewPostRepository() domain.PostRepositoryInterface {
+func NewPostRepository() *PostRepository {
 	return &PostRepository{}
 }
 

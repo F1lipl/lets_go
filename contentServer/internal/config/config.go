@@ -10,9 +10,10 @@ import (
 
 type Config struct {
 	rest.RestConf
-	DataSource string
-	Redis      redis.RedisConf
-	Auth       struct {
+	DataSource               string
+	PostMediaLookupTimeoutMs int64
+	Redis                    redis.RedisConf
+	Auth                     struct {
 		AccessSecret string
 	}
 }

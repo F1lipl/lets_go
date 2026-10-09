@@ -114,6 +114,12 @@ func codeFromError(err error) ecode.Code {
 		return ecode.DraftVersionConflict
 	case errors.Is(err, domain.ErrPostNotFound):
 		return ecode.PostNotFound
+	case errors.Is(err, domain.ErrPostNotPublished):
+		return ecode.PostNotPublished
+	case errors.Is(err, domain.ErrPostNotVisible):
+		return ecode.PostNotVisible
+	case errors.Is(err, domain.ErrRevisionNotFound):
+		return ecode.RevisionNotFound
 	case errors.Is(err, domain.ErrPostAlreadyDeleted):
 		return ecode.PostAlreadyDeleted
 	case errors.Is(err, domain.ErrPostOperationNotAllowed):

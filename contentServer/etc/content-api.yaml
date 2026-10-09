@@ -1,4 +1,5 @@
 Name: content-server-api
+PostMediaLookupTimeoutMs: 300
 Host: 0.0.0.0
 Port: 8888
 

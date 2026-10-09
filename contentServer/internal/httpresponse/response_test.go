@@ -149,6 +149,28 @@ func TestWriteErrorMapsDeletePostDomainErrors(t *testing.T) {
 	}
 }
 
+func TestWriteErrorMapsPublishedPostReadErrors(t *testing.T) {
+	for _, tt := range []struct {
+		err        error
+		wantCode   ecode.Code
+		wantStatus int
+	}{
+		{domain.ErrPostNotPublished, ecode.PostNotPublished, http.StatusConflict},
+		{domain.ErrPostNotVisible, ecode.PostNotVisible, http.StatusForbidden},
+		{domain.ErrRevisionNotFound, ecode.RevisionNotFound, http.StatusNotFound},
+	} {
+		recorder := httptest.NewRecorder()
+		WriteError(context.Background(), recorder, tt.err)
+		var body Envelope
+		if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
+			t.Fatal(err)
+		}
+		if recorder.Code != tt.wantStatus || body.ErrorCode != tt.wantCode.Int() {
+			t.Fatalf("error %v returned status %d, code %d", tt.err, recorder.Code, body.ErrorCode)
+		}
+	}
+}
+
 func TestStatusFor(t *testing.T) {
 	tests := []struct {
 		code ecode.Code
