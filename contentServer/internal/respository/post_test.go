@@ -1,63 +1,25 @@
 package respository
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"contentserver/internal/domain"
-	"contentserver/internal/model"
 
 	"github.com/google/uuid"
 )
 
-func TestClassifyDeleteFailure(t *testing.T) {
-	authorID, err := domain.ParseUserID(uuid.NewString())
+func TestDeletePostRejectsInvalidInputsBeforeTransaction(t *testing.T) {
+	repo := NewPostRepository()
+	if _, err := repo.DeletePost(context.Background(), nil, domain.PostID{}, func(*domain.Post) error { return nil }); !errors.Is(err, domain.ErrInvalidPostID) {
+		t.Fatalf("zero post ID = %v", err)
+	}
+	postID, err := domain.ParsePostID(uuid.NewString())
 	if err != nil {
 		t.Fatal(err)
 	}
-	otherAuthorID := uuid.NewString()
-
-	tests := []struct {
-		name    string
-		current *model.Post
-		want    error
-	}{
-		{name: "missing", current: nil, want: domain.ErrPostNotFound},
-		{
-			name: "different author",
-			current: &model.Post{
-				AuthorId:        otherAuthorID,
-				LifecycleStatus: uint64(domain.LifecyclePublished),
-				PostVersion:     7,
-			},
-			want: domain.ErrPostOperationNotAllowed,
-		},
-		{
-			name: "already deleted",
-			current: &model.Post{
-				AuthorId:        authorID.String(),
-				LifecycleStatus: uint64(domain.LifecycleDeleted),
-				PostVersion:     8,
-			},
-			want: domain.ErrPostAlreadyDeleted,
-		},
-		{
-			name: "stale version",
-			current: &model.Post{
-				AuthorId:        authorID.String(),
-				LifecycleStatus: uint64(domain.LifecyclePublished),
-				PostVersion:     8,
-			},
-			want: domain.ErrPostVersionConflict,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := classifyDeleteFailure(tt.current, authorID, 7)
-			if !errors.Is(got, tt.want) {
-				t.Fatalf("classifyDeleteFailure() = %v, want %v", got, tt.want)
-			}
-		})
+	if _, err := repo.DeletePost(context.Background(), nil, postID, nil); err == nil {
+		t.Fatal("nil delete callback accepted")
 	}
 }

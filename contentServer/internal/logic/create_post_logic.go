@@ -62,6 +62,9 @@ func (l *CreatePostLogic) CreatePost(req *types.CreatePostRequest) (*types.Creat
 	if err := respository.NewPostRepository().CreatePost(l.ctx, l.svcCtx.DB, post, draft); err != nil {
 		return nil, err
 	}
+	logCommittedPostOperation(l.ctx, "create_post", post.PostID.String(), authorID.String(),
+		logx.Field("postVersion", post.Version),
+		logx.Field("draftVersion", draft.Version))
 	return &types.CreatePostData{
 		PostId: post.PostID.String(), Status: "draft", PostVersion: post.Version,
 		DraftVersion: draft.Version, CreatedAt: post.CreatedAt.Format(time.RFC3339Nano),

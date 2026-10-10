@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"time"
 
 	"contentserver/internal/domain"
 	"contentserver/internal/model"
@@ -214,31 +213,46 @@ func (r *PostRepository) DeletePost(
 	ctx context.Context,
 	conn sqlx.SqlConn,
 	postID domain.PostID,
-	authorID domain.UserID,
-	expectedVersion uint64,
-) error {
+	apply func(*domain.Post) error,
+) (*domain.PostDeletionResult, error) {
 	if postID.IsZero() {
-		return domain.ErrInvalidPostID
+		return nil, domain.ErrInvalidPostID
 	}
-	if authorID.IsZero() {
-		return domain.ErrInvalidUserID
-	}
-	if expectedVersion == 0 {
-		return domain.ErrInvalidVersion
+	if apply == nil {
+		return nil, fmt.Errorf("post deletion callback is nil")
 	}
 
-	return conn.TransactCtx(
+	var deleted *domain.PostDeletionResult
+	err := conn.TransactCtx(
 		ctx,
 		func(ctx context.Context, session sqlx.Session) error {
 			txConn := sqlx.NewSqlConnFromSession(session)
-
 			postModel := model.NewPostModel(txConn)
+			current, err := postModel.FindOneForUpdate(ctx, postID.String())
+			if errors.Is(err, model.ErrNotFound) {
+				return domain.ErrPostNotFound
+			}
+			if err != nil {
+				return err
+			}
+			post, err := restorePost(current)
+			if err != nil {
+				return err
+			}
+			if err := apply(post); err != nil {
+				return err
+			}
+			if post.PostID != postID || post.AuthorID.String() != current.AuthorId ||
+				post.Version != current.PostVersion+1 || post.LifecycleStatus != domain.LifecycleDeleted ||
+				post.DeletedAt == nil {
+				return fmt.Errorf("invalid post deletion callback result")
+			}
 			result, err := postModel.UpdateForDelete(
 				ctx,
-				authorID.String(),
+				current.AuthorId,
 				postID.String(),
-				expectedVersion,
-				time.Now(),
+				current.PostVersion,
+				*post.DeletedAt,
 			)
 			if err != nil {
 				return err
@@ -249,15 +263,7 @@ func (r *PostRepository) DeletePost(
 				return err
 			}
 			if affected == 0 {
-				current, err := postModel.FindOneForUpdate(ctx, postID.String())
-				if err != nil {
-					if errors.Is(err, model.ErrNotFound) {
-						return domain.ErrPostNotFound
-					}
-					return err
-				}
-
-				return classifyDeleteFailure(current, authorID, expectedVersion)
+				return domain.ErrPostVersionConflict
 			}
 
 			cardModel := model.NewPostCardProjectionModel(txConn)
@@ -265,25 +271,14 @@ func (r *PostRepository) DeletePost(
 				return err
 			}
 
-			// PostDeleted 事件也应在这个事务中写入。
-
+			deleted = &domain.PostDeletionResult{
+				PostID: postID, PostVersion: post.Version, DeletedAt: *post.DeletedAt,
+			}
 			return nil
 		},
 	)
-}
-
-func classifyDeleteFailure(current *model.Post, authorID domain.UserID, expectedVersion uint64) error {
-	if current == nil {
-		return domain.ErrPostNotFound
+	if err != nil {
+		return nil, err
 	}
-	switch {
-	case current.AuthorId != authorID.String():
-		return domain.ErrPostOperationNotAllowed
-	case current.LifecycleStatus == uint64(domain.LifecycleDeleted):
-		return domain.ErrPostAlreadyDeleted
-	case current.PostVersion != expectedVersion:
-		return domain.ErrPostVersionConflict
-	default:
-		return domain.ErrPostOperationNotAllowed
-	}
+	return deleted, nil
 }

@@ -62,6 +62,8 @@ func (l *SavePostDraftLogic) SavePostDraft(req *types.SavePostDraftRequest) (*ty
 	if err != nil {
 		return nil, err
 	}
+	logCommittedPostOperation(l.ctx, "save_post_draft", saved.PostID.String(), actorID.String(),
+		logx.Field("draftVersion", saved.Version))
 	return &types.SavePostDraftData{
 		PostId: saved.PostID.String(), DraftVersion: saved.Version,
 		UpdatedAt: saved.UpdatedAt.Format(time.RFC3339Nano),

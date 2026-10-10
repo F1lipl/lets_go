@@ -74,6 +74,10 @@ func (l *PublishPostLogic) PublishPost(req *types.PublishPostRequest) (*types.Pu
 	if l.svcCtx.OutboxNotifier != nil {
 		l.svcCtx.OutboxNotifier.NotifyOutboxCommitted()
 	}
+	logCommittedPostOperation(l.ctx, "publish_post", result.PostID.String(), actorID.String(),
+		logx.Field("revisionId", result.RevisionID.String()),
+		logx.Field("revisionNumber", result.RevisionNumber),
+		logx.Field("postVersion", result.PostVersion))
 	return &types.PublishPostData{
 		PostId: result.PostID.String(), RevisionId: result.RevisionID.String(),
 		RevisionNumber: result.RevisionNumber, PostVersion: result.PostVersion,

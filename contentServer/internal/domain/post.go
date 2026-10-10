@@ -41,7 +41,7 @@ func (visibility Visibility) Valid() bool {
 type PostRepositoryInterface interface {
 	CreatePost(ctx context.Context, conn sqlx.SqlConn, post *Post, postDraft *PostDraft) error
 	SavePostDraft(ctx context.Context, conn sqlx.SqlConn, postID PostID, apply func(*Post, uint64) (*PostDraft, error)) (*PostDraft, error)
-	DeletePost(ctx context.Context, conn sqlx.SqlConn, postID PostID, authorID UserID, expectedVersion uint64) error
+	DeletePost(ctx context.Context, conn sqlx.SqlConn, postID PostID, apply func(*Post) error) (*PostDeletionResult, error)
 	PublishPost(ctx context.Context, conn sqlx.SqlConn, postID PostID, apply func(*Post, *PostDraft) (*PostRevision, error)) (*PublicationResult, error)
 }
 
@@ -105,6 +105,44 @@ func ParseVisibility(value string) (Visibility, error) {
 	default:
 		return 0, ErrInvalidVisibility
 	}
+}
+
+// Delete applies the ownership, lifecycle and version rules to a post loaded
+// under the repository's row lock. A repeated request is reported as deleted,
+// rather than silently succeeding with a different version.
+func (post *Post) Delete(actorID UserID, expectedVersion uint64, now time.Time) error {
+	if post == nil {
+		return ErrPostNotFound
+	}
+	if actorID.IsZero() {
+		return ErrInvalidUserID
+	}
+	if post.AuthorID != actorID {
+		return ErrPostOperationNotAllowed
+	}
+	if post.LifecycleStatus == LifecycleDeleted || post.DeletedAt != nil {
+		return ErrPostAlreadyDeleted
+	}
+	if post.LifecycleStatus != LifecycleDraft && post.LifecycleStatus != LifecyclePublished {
+		return ErrPostOperationNotAllowed
+	}
+	if expectedVersion == 0 || post.Version == ^uint64(0) {
+		return ErrInvalidVersion
+	}
+	if post.Version != expectedVersion {
+		return ErrPostVersionConflict
+	}
+	post.LifecycleStatus = LifecycleDeleted
+	post.Version++
+	post.DeletedAt = &now
+	post.UpdatedAt = now
+	return nil
+}
+
+type PostDeletionResult struct {
+	PostID      PostID
+	PostVersion uint64
+	DeletedAt   time.Time
 }
 
 // ReplaceDraft checks post ownership and lifecycle against the row loaded by

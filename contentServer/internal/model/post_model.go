@@ -66,17 +66,20 @@ func (m *customPostModel) UpdateForDelete(
         UPDATE %s
         SET lifecycle_status = ?,
             deleted_at = ?,
+            updated_at = ?,
             post_version = post_version + 1
         WHERE post_id = ?
           AND author_id = ?
           AND post_version = ?
           AND lifecycle_status <> ?
+          AND deleted_at IS NULL
     `, m.table)
 
 	return m.conn.ExecCtx(
 		ctx,
 		query,
 		uint64(4),
+		deletedAt,
 		deletedAt,
 		postID,
 		authorID,
